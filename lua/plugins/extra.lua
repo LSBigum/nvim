@@ -76,7 +76,7 @@ return {
         },
       },
     },
-    { 
+    {
       "saghen/blink.cmp",
       opts = {
         sources = {
@@ -104,50 +104,25 @@ return {
     "folke/flash.nvim",
     event = "VeryLazy",
     ---@type Flash.Config
-    opts = {},
+    opts = {
+      modes = {
+        char = {
+          -- enabled = false,
+          multi_line = false,
+          highlight = { backdrop = false },
+        },
+      },
+    },
     -- stylua: ignore
     keys = {
-      { "s",     mode = { "n", "x", "o" }, function() require("flash").jump() end,              desc = "Flash" },
-      { "S",     mode = { "n", "x", "o" }, function() require("flash").treesitter() end,        desc = "Flash Treesitter" },
-      { "r",     mode = "o",               function() require("flash").remote() end,            desc = "Remote Flash" },
-      { "R",     mode = { "o", "x" },      function() require("flash").treesitter_search() end, desc = "Treesitter Search" },
-      { "<c-s>", mode = { "c" },           function() require("flash").toggle() end,            desc = "Toggle Flash Search" },
+      { "S",     mode = { "n", "x", "o" }, function() require("flash").jump() end,              desc = "Flash" },
+      -- { "S",     mode = { "n", "x", "o" }, function() require("flash").treesitter() end,        desc = "Flash Treesitter" },
+      -- { "r",     mode = "o",               function() require("flash").remote() end,            desc = "Remote Flash" },
+      -- { "R",     mode = { "o", "x" },      function() require("flash").treesitter_search() end, desc = "Treesitter Search" },
+      -- { "<c-s>", mode = { "c" },           function() require("flash").toggle() end,            desc = "Toggle Flash Search" },
     },
   },
 
-  -- {
-  --   "utilyre/barbecue.nvim",
-  --   name = "barbecue",
-  --   version = "*",
-  --   dependencies = {
-  --     "SmiteshP/nvim-navic",
-  --     "nvim-tree/nvim-web-devicons", -- optional dependency
-  --   },
-  --   opts = {
-  --     -- configurations go here
-  --   },
-  --   config = function()
-  --     require("barbecue").setup({
-  --       create_autocmd = false, -- prevent barbecue from updating itself automatically
-  --     })
-  --
-  --     vim.api.nvim_create_autocmd({
-  --       "WinScrolled", -- or WinResized on NVIM-v0.9 and higher
-  --       "BufWinEnter",
-  --       "CursorHold",
-  --       "InsertLeave",
-  --
-  --       -- include this if you have set `show_modified` to `true`
-  --       -- "BufModifiedSet",
-  --     }, {
-  --       group = vim.api.nvim_create_augroup("barbecue.updater", {}),
-  --       callback = function()
-  --         require("barbecue.ui").update()
-  --       end,
-  --     })
-  --   end,
-  -- },
-  -- persist sessions
   {
     "folke/persistence.nvim",
     event = "BufReadPre", -- this will only start session saving when an actual file was opened
@@ -170,7 +145,17 @@ return {
       -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
-      require("mini.surround").setup()
+      require("mini.surround").setup({
+        mappings = {
+          add = "gsa", -- Add surrounding in Normal and Visual modes
+          delete = "gsd", -- Delete surrounding
+          find = "gsf", -- Find surrounding (to the right)
+          find_left = "gsF", -- Find surrounding (to the left)
+          highlight = "gsh", -- Highlight surrounding
+          replace = "gsr", -- Replace surrounding
+          update_n_lines = "gsn", -- Update `n_lines`
+        },
+      })
 
       require("mini.pairs").setup()
 
@@ -193,27 +178,6 @@ return {
   },
 
   {
-    "fladson/vim-kitty",
     "MunifTanjim/nui.nvim",
-  },
-  {
-    "nvchad/showkeys",
-    cmd = "ShowkeysToggle",
-    opts = {
-      timeout = 1,
-      maxkeys = 6,
-      -- bottom-left, bottom-right, bottom-center, top-left, top-right, top-center
-      position = "bottom-right",
-    },
-
-    keys = {
-      {
-        "<leader>ut",
-        function()
-          vim.cmd("ShowkeysToggle")
-        end,
-        desc = "Show key presses",
-      },
-    },
   },
 }

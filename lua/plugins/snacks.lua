@@ -15,13 +15,34 @@ return {
     },
     picker = {
       enabled = true,
+      sources = {
+        explorer = {
+          win = {
+            list = {
+              wo = {
+                number = true, relativenumber = true,
+              },
+            },
+          },
+        },
+      },
     },
     quickfile = { enabled = true },
     scope = { enabled = true },
     scroll = { enabled = false },
     statuscolumn = { enabled = true },
     words = { enabled = true },
+    ---@class snacks.zen.Config
+    zen = {
+      ---@type table<string, boolean>
+      toggles = {
+        dim = false
+      },
+    },
     styles = {
+      zen = {
+        backdrop = { transparent = false },
+      },
       notification = {
         -- wo = { wrap = true } -- Wrap notifications
       },
@@ -42,6 +63,28 @@ return {
         Snacks.picker.grep()
       end,
       desc = "Grep",
+    },
+    {
+      "<C-s>",
+      function()
+        Snacks.picker.grep_buffers()
+      end,
+      desc = "Grep Open Buffers",
+    },
+    {
+      "<leader>sg",
+      function()
+        Snacks.picker.grep()
+      end,
+      desc = "Grep",
+    },
+    {
+      "<leader>sw",
+      function()
+        Snacks.picker.grep_word()
+      end,
+      desc = "Visual selection or word",
+      mode = { "n", "x" },
     },
     {
       "<leader>:",
@@ -174,28 +217,6 @@ return {
         Snacks.picker.lines()
       end,
       desc = "Buffer Lines",
-    },
-    {
-      "<C-s>",
-      function()
-        Snacks.picker.grep_buffers()
-      end,
-      desc = "Grep Open Buffers",
-    },
-    {
-      "<leader>st",
-      function()
-        Snacks.picker.grep()
-      end,
-      desc = "Grep",
-    },
-    {
-      "<leader>sw",
-      function()
-        Snacks.picker.grep_word()
-      end,
-      desc = "Visual selection or word",
-      mode = { "n", "x" },
     },
     -- search
     {
@@ -440,7 +461,7 @@ return {
       desc = "Delete Buffer",
     },
     {
-      "<leader>cR",
+      "<leader>RR",
       function()
         Snacks.rename.rename_file()
       end,

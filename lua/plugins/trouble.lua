@@ -35,12 +35,12 @@ return {
       desc = "Buffer Diagnostics (Trouble)",
     },
     {
-      "<leader>cs",
+      "<leader>xs",
       "<cmd>Trouble symbols toggle focus=false<cr>",
       desc = "Symbols (Trouble)",
     },
     {
-      "<leader>cl",
+      "<leader>xl",
       "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
       desc = "LSP Definitions / references / ... (Trouble)",
     },
@@ -76,9 +76,9 @@ return {
         toggle_preview = "P",       -- toggle auto_preview
         hover = "K",                -- opens a small popup with the full multiline message
         preview = "p",              -- preview the diagnostic location
-        close_folds = { "zM" },     -- close all folds
-        open_folds = { "zR" },      -- open all folds
-        toggle_fold = { "za" },     -- toggle fold of current file
+        -- close_folds = { "zM" },     -- close all folds
+        -- open_folds = { "zR" },      -- open all folds
+        -- toggle_fold = { "za" },     -- toggle fold of current file
       },
       auto_jump = {},
       use_diagnostic_signs = true,

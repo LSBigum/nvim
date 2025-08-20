@@ -1,31 +1,6 @@
 local M = {}
 
-M.toggle_go_test = function()
-  -- Get the current buffer's file name
-  local current_file = vim.fn.expand("%:p")
-  if string.match(current_file, "_test.go$") then
-    -- If the current file ends with '_test.go', try to find the corresponding non-test file
-    local non_test_file = string.gsub(current_file, "_test.go$", ".go")
-    if vim.fn.filereadable(non_test_file) == 1 then
-      -- Open the corresponding non-test file if it exists
-      vim.cmd.edit(non_test_file)
-    else
-      print("No corresponding non-test file found")
-    end
-  else
-    -- If the current file is a non-test file, try to find the corresponding test file
-    local test_file = string.gsub(current_file, ".go$", "_test.go")
-    if vim.fn.filereadable(test_file) == 1 then
-      -- Open the corresponding test file if it exists
-      vim.cmd.edit(test_file)
-    else
-      print("No corresponding test file found")
-    end
-  end
-end
-
--- Copy the current file path and line number to the clipboard, use GitHub URL if in a Git repository
-M.copyFilePathAndLineNumber = function()
+M.copyFilePathAndLineNumberGit = function()
   local current_file = vim.fn.expand("%:p")
   local current_line = vim.fn.line(".")
   local is_git_repo = vim.fn.system("git rev-parse --is-inside-work-tree"):match("true")
@@ -48,10 +23,17 @@ M.copyFilePathAndLineNumber = function()
     vim.fn.setreg("+", url)
     print("Copied to clipboard: " .. url)
   else
-    -- If not in a Git directory, copy the full file path
-    vim.fn.setreg("+", current_file .. "#L" .. current_line)
-    print("Copied full path to clipboard: " .. current_file .. "#L" .. current_line)
+    print("Not a git repository, can't copy filepath and linenumber!")
   end
+end
+
+-- Copy the current file path and line number to the clipboard, use GitHub URL if in a Git repository
+M.copyFilePathAndLineNumber = function()
+  local current_file = vim.fn.expand("%:p")
+  local current_line = vim.fn.line(".")
+
+  vim.fn.setreg("+", current_file .. ":" .. current_line)
+  print("Copied full path to clipboard: " .. current_file .. ":" .. current_line)
 end
 
 return M

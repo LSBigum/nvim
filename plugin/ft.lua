@@ -6,4 +6,10 @@ vim.filetype.add({
     ["*.env"] = "sh",
     ["*.envrc"] = "sh"
   }
-})
+},
+
+vim.filetype.add({
+  pattern = {
+    ['.*%.gitlab%-ci%.ya?ml'] = 'yaml.gitlab',
+  },
+}))

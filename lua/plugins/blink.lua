@@ -32,13 +32,48 @@ return {
                     },
                 },
                 keymap = {
-                    ["<C-f>"] = {},
+                    preset = 'default',
+                    ['<C-k>'] = {
+                      function(cmp)
+                        cmp.select_prev { auto_insert = false }
+                      end,
+                    },
+                    ['<C-j>'] = {
+                      function(cmp)
+                        cmp.select_next { auto_insert = false }
+                      end,
+                    },
+                    ['<C-d>'] = {
+                      function(cmp)
+                        for _ = 1, 4 do
+                          cmp.select_next { auto_insert = false }
+                        end
+                        return true
+                      end,
+                      'scroll_documentation_down',
+                    },
+                    ['<C-u>'] = {
+                      function(cmp)
+                        for _ = 1, 4 do
+                          cmp.select_prev { auto_insert = false }
+                        end
+                        return true
+                      end,
+                      'scroll_documentation_up',
+                    },
+                    ['<C-h>'] = { 'snippet_backward', 'fallback' },
+                    ['<C-l>'] = { 'snippet_forward', 'fallback' },
+                    ['<C-S-k>'] = { 'show_signature', 'hide_signature', 'fallback' },
                 },
                 cmdline = {
-                    enabled = false,
-                    completion = { menu = { auto_show = true } },
+                    enabled = true,
+                    completion = {
+                        -- menu = { auto_show = true },
+                        -- ghost_text = { enabled = true },
+                    },
                     keymap = {
-                        ["<CR>"] = { "accept_and_enter", "fallback" },
+                        preset = 'inherit',
+                        -- ["<CR>"] = { "accept_and_enter", "fallback" },
                     },
                 },
                 completion = {

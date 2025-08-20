@@ -1,11 +1,7 @@
-vim.lsp.enable({
-    "lua-ls",
-    "gopls",
-    "zls",
-    "ts-ls",
-    "rust-analyzer",
-    "intelephense",
-})
+-- vim.lsp.enable({
+--     "clangd",
+--     "lua-ls",
+-- })
 
 vim.diagnostic.config({
     virtual_text = true,
@@ -59,7 +55,7 @@ end, {})
 local function lsp_status()
     local bufnr = vim.api.nvim_get_current_buf()
     local clients = vim.lsp.get_clients and vim.lsp.get_clients({ bufnr = bufnr }) or
-        vim.lsp.get_active_clients({ bufnr = bufnr })
+        vim.lsp.get_clients({ bufnr = bufnr })
 
     if #clients == 0 then
         print("󰅚 No LSP clients attached")
@@ -76,6 +72,11 @@ local function lsp_status()
 
         -- Check capabilities
         local caps = client.server_capabilities
+        if caps == nil then
+            print("Could not get server_capabilities for client: ", client)
+            goto continue
+        end
+
         local features = {}
         if caps.completionProvider then table.insert(features, "completion") end
         if caps.hoverProvider then table.insert(features, "hover") end
@@ -87,6 +88,7 @@ local function lsp_status()
 
         print("  Features: " .. table.concat(features, ", "))
         print("")
+        ::continue::
     end
 end
 
@@ -95,7 +97,7 @@ vim.api.nvim_create_user_command('LspStatus', lsp_status, { desc = "Show detaile
 local function check_lsp_capabilities()
     local bufnr = vim.api.nvim_get_current_buf()
     local clients = vim.lsp.get_clients and vim.lsp.get_clients({ bufnr = bufnr }) or
-        vim.lsp.get_active_clients({ bufnr = bufnr })
+        vim.lsp.get_clients({ bufnr = bufnr })
 
     if #clients == 0 then
         print("No LSP clients attached")
@@ -106,6 +108,9 @@ local function check_lsp_capabilities()
         print("Capabilities for " .. client.name .. ":")
         local caps = client.server_capabilities
 
+        if caps == nil then
+            goto continue
+        end
         local capability_list = {
             { "Completion",                caps.completionProvider },
             { "Hover",                     caps.hoverProvider },
@@ -132,6 +137,7 @@ local function check_lsp_capabilities()
             print(string.format("  %s %s", status, cap[1]))
         end
         print("")
+        ::continue::
     end
 end
 
