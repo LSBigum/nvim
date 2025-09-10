@@ -161,24 +161,142 @@ return {
       command = vim.fn.exepath("lldb-dap-18"),
     }
 
+    -- dap.adapters.lldb_docker = {
+    --   type = "executable",
+    --   command = "docker",
+    --   args = { "exec", "-i", "hawktest_compiler", "bash", "-c", "lldb-dap-18" },
+    -- }
+    --
+    -- dap.configurations.cpp = {
+    --   {
+    --     name = "C++ attach",
+    --     type = "lldb_docker",
+    --     request = "attach",
+    --     pid = require("dap.utils").pick_process,
+    --     -- program = require('dap.utils').pick_file(),
+    --     sourceMap = {
+    --       { "/home/nordbo_docker/catkin_ws", "/home/nordbo/catkin_ws_test" },
+    --     },
+    --   },
+    --   {
+    --     name = "C++ docker launch",
+    --     type = "lldb_docker",
+    --     request = "launch",
+    --     program = function()
+    --     -- require('dap.utils').pick_file,
+    --     end,
+    --     sourceMap = {
+    --       { "/home/nordbo_docker/catkin_ws", "/home/nordbo/catkin_ws_test" },
+    --     },
+    --   },
+    -- }
+
+    local dap = require("dap")
+
+    -- Name your running container here
+    local CONTAINER = "hawktest_compiler"
+
+    -- Helper: pick a PID from inside the container
+    local function pick_container_process()
+      -- list PIDs with command (customize ps columns if you like)
+      local lines = vim.fn.systemlist(
+        string.format([[docker exec %s sh -lc 'ps -eo pid,comm,args --no-headers']], CONTAINER)
+      )
+      if vim.v.shell_error ~= 0 or #lines == 0 then
+        vim.notify("Could not list processes inside container " .. CONTAINER, vim.log.levels.ERROR)
+        return nil
+      end
+
+      -- build choices: "1234  cmd  full args..."
+      local choices = {}
+      for _, l in ipairs(lines) do
+        -- normalize whitespace; ensure PID is first field
+        local pid, rest = l:match("^%s*(%d+)%s+(.+)$")
+        if pid and rest then
+          table.insert(choices, { pid = tonumber(pid), label = pid .. "  " .. rest })
+        end
+      end
+
+      return coroutine.create(function(co)
+        vim.ui.select(
+          vim.tbl_map(function(it) return it.label end, choices),
+          { prompt = "Select process (container):" },
+          function(item)
+            if not item then
+              coroutine.resume(co, nil)
+              return
+            end
+            -- map label back to pid
+            for _, it in ipairs(choices) do
+              if it.label == item then
+                coroutine.resume(co, it.pid)
+                return
+              end
+            end
+            coroutine.resume(co, nil)
+          end
+        )
+      end)
+    end
+
+    -- Debug adapter that runs inside the container
     dap.adapters.lldb_docker = {
       type = "executable",
       command = "docker",
-      args = { "exec", "-i", "hawktest_compiler", "bash", "-c", "lldb-dap-18" },
+      -- Use sh -lc so we can fall back between lldb-dap-18 and lldb-dap
+      args = {
+        "exec", "-i", CONTAINER, "sh", "-lc",
+        -- Prefer 18, fall back to plain lldb-dap if that binary name differs
+        [[command -v lldb-dap-18 >/dev/null 2>&1 && exec lldb-dap-18 || exec lldb-dap]]
+      },
+    }
+
+    -- Path mapping: container -> host
+    local source_map = {
+      ["/home/nordbo_docker/catkin_ws"] = "/home/nordbo/catkin_ws_test",
+      -- add more entries if needed
     }
 
     dap.configurations.cpp = {
+      -- Attach to a running C++ process *inside the container*
       {
-        name = "C++",
+        name = "C++ attach (inside container)",
         type = "lldb_docker",
         request = "attach",
-        pid = require("dap.utils").pick_process,
-        -- program = require('dap.utils').pick_file(),
-        sourceMap = {
-          { "/home/nordbo_docker/catkin_ws", "/home/nordbo/catkin_ws_test" },
-        },
+        pid = pick_container_process,     -- <— our custom picker
+        sourceMap = source_map,           -- container → host mapping
+        -- Optional quality-of-life:
+        stopOnEntry = false,
+        __sandbox = false,                -- keep lldb from sandboxing on some platforms
+      },
+
+      -- Launch an executable *inside the container*
+      {
+        name = "C++ docker launch",
+        type = "lldb_docker",
+        request = "launch",
+        program = function()
+          -- IMPORTANT: this path is *inside the container*.
+          return vim.fn.input("Path to executable in container: ",
+            "/home/nordbo_docker/catkin_ws/devel/lib/your_binary",
+            "file"
+          )
+        end,
+        args = function()
+          local a = vim.fn.input("Program args (space-separated): ")
+          return vim.split(vim.fn.trim(a), "%s+")
+        end,
+        cwd = function()
+          -- Working directory *inside* the container. Adjust as needed.
+          return vim.fn.input("Container working dir: ", "/home/nordbo_docker/catkin_ws", "dir")
+        end,
+        env = {},                         -- you can pass { KEY = "VALUE", ... } to the containered program
+        stopOnEntry = false,
+        sourceMap = source_map,           -- container → host mapping
+        externalConsole = false,          -- use neovim console
       },
     }
+
         -- -- Install golang specific config
         -- require('dap-go').setup({
         --     dap_configurations = {
