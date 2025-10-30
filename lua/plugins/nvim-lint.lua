@@ -11,6 +11,7 @@ return {
       cpp = { "cpplint" },
       json = { "jsonlint" },
       lua = { "selene" },
+      proto = { "protolint" },
       markdown = { "markdownlint-cli2" },
       yaml = { "yamllint" }
     },
