@@ -41,9 +41,9 @@ return {
                     "beautysh", -- bash formatter
                     "black", -- python
                     "buf",
+                    "clang-format", -- cpp formatter
                     "cmakelint",
                     "commitlint",
-                    "clang-format", -- cpp formatter
                     "cpplint", -- cpp linter
                     "isort", -- python
                     "jsonlint",
