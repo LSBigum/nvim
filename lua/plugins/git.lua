@@ -67,56 +67,56 @@ return {
     end,
     keys = {
       {
-        "<leader>Gk",
+        "<leader>gk",
         function()
           require("gitsigns").prev_hunk({ navigation_message = false })
         end,
         desc = "Prev Hunk",
       },
       {
-        "<leader>Gl",
+        "<leader>gl",
         function()
           require("gitsigns").blame_line()
         end,
         desc = "Blame",
       },
       {
-        "<leader>Gp",
+        "<leader>gp",
         function()
           require("gitsigns").preview_hunk()
         end,
         desc = "Preview Hunk",
       },
       {
-        "<leader>Gr",
+        "<leader>gr",
         function()
           require("gitsigns").reset_hunk()
         end,
         desc = "Reset Hunk",
       },
       {
-        "<leader>GR",
+        "<leader>gR",
         function()
           require("gitsigns").reset_buffer()
         end,
         desc = "Reset Buffer",
       },
       {
-        "<leader>Gj",
+        "<leader>gj",
         function()
           require("gitsigns").next_hunk({ navigation_message = false })
         end,
         desc = "Next Hunk",
       },
       {
-        "<leader>Gs",
+        "<leader>gs",
         function()
           require("gitsigns").stage_hunk()
         end,
         desc = "Stage Hunk",
       },
       {
-        "<leader>Gu",
+        "<leader>gu",
         function()
           require("gitsigns").undo_stage_hunk()
         end,
@@ -139,7 +139,7 @@ return {
       --   desc = "Checkout commit(for current file)"
       -- },
       {
-        "<leader>Gd",
+        "<leader>gd",
         function()
           vim.cmd("Gitsigns diffthis HEAD")
         end,
