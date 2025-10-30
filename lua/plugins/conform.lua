@@ -38,6 +38,11 @@ return {
     },
     formatters = {
       albatross_clang_format = { command = "nordbo-albatross-clang-format" },
+      black = {
+        prepend_args = {
+          "--line-length", "200"
+        }
+      },
     },
     notify_on_error = true,
     notify_no_formatters = true,
