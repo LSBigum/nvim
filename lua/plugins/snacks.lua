@@ -56,12 +56,17 @@ return {
     zen = {
       ---@type table<string, boolean>
       toggles = {
-        dim = false
+        dim = false,
+        gitsigns = true,
       },
     },
     styles = {
       zen = {
-        backdrop = { transparent = false },
+        width = 200,
+        backdrop = {
+          transparent = false,
+          blend = 80
+        },
       },
       notification = {
         -- wo = { wrap = true } -- Wrap notifications
