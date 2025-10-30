@@ -149,6 +149,17 @@ local function find_host_compile_dir()
     end
   end
 
+  do
+    local ws, proj = cwd:match("(.+/external_projects)/([^/]+)")
+    if ws and proj then
+      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
+      if dir then
+        log("host compile_commands_dir=" .. dir)
+        return dir
+      end
+    end
+  end
+
   -- 5) Standard CMake build at project root
   do
     local dir = prefer_compile_commands_dir(path_join(cwd, "build"))
@@ -221,8 +232,16 @@ local function clangd_root_dir(bufnr, cb)
     return cb(cwd)
   end
   local fname = vim.api.nvim_buf_get_name(bufnr)
+  local contains_build_dir = vim.fs.find("build", { path = fname, upward = true })[1]
+  if contains_build_dir then
+    log("root_dir = contains_build_dir: " .. vim.fs.dirname(contains_build_dir))
+    return cb(vim.fs.dirname(contains_build_dir))
+  end
   local git_dir = vim.fs.find(".git", { path = fname, upward = true })[1]
-  if git_dir then return cb(vim.fs.dirname(git_dir)) end
+  if git_dir then
+    log("root_dir = git_dir: " .. vim.fs.dirname(git_dir))
+    return cb(vim.fs.dirname(git_dir))
+  end
   return cb(cwd)
 end
 
@@ -230,11 +249,12 @@ end
 M.config = {
   cmd = clangd_cmd,
   filetypes = { "c", "cpp" },
-  root_dir = clangd_root_dir,
-  root_markers = { "compile_commands.json", ".clang" },
+  -- root_dir = clangd_root_dir,
+  root_markers = { "compile_commands.json", ".clang", "package.xml", ".git" },
   init_options = { clangdFileStatus = true },
   settings = {},
 }
+log("using root_dir: " .. table.concat(M.config))
 
 return M.config
 

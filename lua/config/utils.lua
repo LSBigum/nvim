@@ -36,4 +36,20 @@ M.copyFilePathAndLineNumber = function()
   print("Copied full path to clipboard: " .. current_file .. ":" .. current_line)
 end
 
+function M.get_package_name()
+  local package_xml = vim.fn.findfile('package.xml', '.;')
+  if package_xml == '' then
+    vim.notify('Unable to find package.xml from ' .. vim.fn.getcwd(), vim.log.levels.ERROR)
+    return
+  end
+  local lines = vim.fn.readfile(package_xml)
+  for _, line in ipairs(lines) do
+    local name = line:match '<name>(.-)</name>'
+    if name then
+      return name
+    end
+  end
+  vim.notify('Unable to get package name from ' .. package_xml, vim.log.levels.ERROR)
+end
+
 return M
