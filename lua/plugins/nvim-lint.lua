@@ -11,6 +11,7 @@ return {
       cpp = { "cpplint" },
       json = { "jsonlint" },
       lua = { "selene" },
+      markdown = { "markdownlint-cli2" },
     },
     -- LazyVim extension to easily override linter options
     -- or add custom linters.

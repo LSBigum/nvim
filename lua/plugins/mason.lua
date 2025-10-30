@@ -47,8 +47,9 @@ return {
                     "cpplint", -- cpp linter
                     "isort", -- python
                     "jsonlint",
-                    "selene", -- lua
+                    "markdownlint-cli2",
                     "protolint",
+                    "selene", -- lua
                     "shellcheck", -- bash linter
                     "stylua", -- lua
                     "yaml-language-server",
