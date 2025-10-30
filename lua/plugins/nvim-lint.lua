@@ -12,6 +12,7 @@ return {
       json = { "jsonlint" },
       lua = { "selene" },
       markdown = { "markdownlint-cli2" },
+      yaml = { "yamllint" }
     },
     -- LazyVim extension to easily override linter options
     -- or add custom linters.
@@ -22,6 +23,13 @@ return {
           -- cpplint filters can be found with "cpplint --filter=" in the terminal
           "--linelength=200",
           "--filter=-legal/copyright"
+        },
+      },
+      yamllint = {
+        args = {
+          '-d',
+          '{extends: default, rules: {line-length: {max: 200, level: warning}}}',
+          '-'
         },
       },
       -- -- Example of using selene only when a selene.toml file is present
