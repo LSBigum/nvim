@@ -193,3 +193,26 @@ vim.api.nvim_create_autocmd("FileType", {
         pcall(vim.treesitter.start)
     end,
 })
+
+vim.api.nvim_create_autocmd('BufNewFile', {
+  pattern = '*',
+  callback = function()
+    if not vim.startswith(vim.fn.expand '%', '/') then
+      return
+    end
+
+    local file_path = vim.fn.expand '%:p'
+    local container_name = require('config.utils_docker').get_container_name()
+
+    local cmd = string.format('docker exec %s cat %s', container_name, file_path)
+    local output = vim.fn.systemlist(cmd)
+
+    if vim.v.shell_error ~= 0 then
+      return
+    end
+
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, output)
+    vim.api.nvim_set_option_value('modifiable', false, { buf = 0 })
+    vim.api.nvim_set_option_value('readonly', true, { buf = 0 })
+  end,
+})
