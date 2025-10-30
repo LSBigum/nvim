@@ -555,6 +555,8 @@ return {
         })
       end,
     },
+    { "gai", function() Snacks.picker.lsp_incoming_calls() end, desc = "C[a]lls Incoming" },
+    { "gao", function() Snacks.picker.lsp_outgoing_calls() end, desc = "C[a]lls Outgoing" },
   },
   init = function()
     vim.api.nvim_create_autocmd("User", {
