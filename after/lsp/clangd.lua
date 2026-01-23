@@ -1,4 +1,5 @@
 -- clangd.lua — host->container compile_commands_dir fix
+local utils_docker = require('config.utils_docker')
 
 local M = {}
 local DEBUG = (vim.env.CLANGD_LUA_DEBUG == "1")
@@ -18,46 +19,6 @@ local function file_exists(p)
 end
 local function dir_exists(p) return vim.fn.isdirectory(p) == 1 end
 
-local function is_container_running(name)
-  local cmd = "docker ps --filter name=" .. name .. " --format '{{.Names}}' | grep -w " .. name .. " > /dev/null"
-  return os.execute(cmd) == 0
-end
-
--- workspace profiles ---------------------------------------------------------
--- NOTE: path_map is HOST_PREFIX -> CONTAINER_PREFIX
-local workspace_profiles = {
-  {
-    match      = "(.+/catkin_ws_20)/src/hawk/([^/]+)",
-    container  = "hawk20_compiler",
-    clangd_bin = "clangd-18",
-    path_map   = { ["/home/nordbo/catkin_ws_20"] = "/home/nordbo_docker/catkin_ws" },
-  },
-  {
-    match      = "(.+/catkin_ws_20)/src/([^/]+)",
-    container  = "hawk20_compiler",
-    clangd_bin = "clangd-18",
-    path_map   = { ["/home/nordbo/catkin_ws_20"] = "/home/nordbo_docker/catkin_ws" },
-  },
-  {
-    match      = "(.+/catkin_ws_core)/src/hawk%-core/packages/([^/]+)",
-    container  = "hawk-core-builder",
-    clangd_bin = "clangd-18",
-    path_map   = { ["/home/nordbo/catkin_ws_core"] = "/catkin_ws" },
-  },
-  {
-    match      = "(.+/catkin_ws_test)/src/hawk/([^/]+)",
-    container  = "hawktest_compiler",
-    clangd_bin = "clangd-18",
-    path_map   = { ["/home/nordbo/catkin_ws_test"] = "/home/nordbo_docker/catkin_ws" },
-  },
-  {
-    match      = "(.+/external_projects)",
-    container  = "hawktest_compiler",
-    clangd_bin = "clangd-18",
-    path_map   = { ["/home/nordbo"] = "/home/nordbo_docker" },
-  },
-}
-
 local function to_path_mappings(map)
   local parts = {}
   for host, cont in pairs(map or {}) do
@@ -65,25 +26,6 @@ local function to_path_mappings(map)
   end
   table.sort(parts)
   return table.concat(parts, ",")
-end
-
-local function map_host_to_container(host_path, map)
-  if not (host_path and map) then
-    return host_path
-  end
-  -- choose the longest matching host prefix to avoid partial-prefix issues
-  local best_host, best_cont, best_len = nil, nil, -1
-  for h, c in pairs(map) do
-    if host_path:sub(1, #h) == h and #h > best_len then
-      best_host, best_cont, best_len = h, c, #h
-    end
-  end
-  if not best_host then
-    return host_path
-  end
-  local suffix = host_path:sub(best_len + 1)
-  local cont_path = best_cont .. suffix
-  return cont_path
 end
 
 -- host-side compile_commands discovery --------------------------------------
@@ -160,7 +102,7 @@ local function find_host_compile_dir()
     end
   end
 
-  -- 5) Standard CMake build at project root
+  -- Standard CMake build at project root
   do
     local dir = prefer_compile_commands_dir(path_join(cwd, "build"))
     if dir then
@@ -169,18 +111,9 @@ local function find_host_compile_dir()
     end
   end
 
-  -- 6) Fallback to cwd
+  -- Fallback to cwd
   log("host compile_commands_dir fallback to cwd=" .. cwd)
   return cwd
-end
-
-local function detect_profile()
-  for _, prof in ipairs(workspace_profiles) do
-    if cwd:match(prof.match) then
-      return prof
-    end
-  end
-  return nil
 end
 
 -- command assembly -----------------------------------------------------------
@@ -197,17 +130,17 @@ local function build_clangd_cmd()
     "--log=verbose",
   }
 
-  local prof = detect_profile()
-  if prof and is_container_running(prof.container) then
+  local profile = utils_docker.detect_profile(cwd)
+  if profile and utils_docker.is_container_running(profile.container) then
     -- translate the verified HOST dir to the container path
-    local cont_cc_dir = map_host_to_container(host_cc_dir, prof.path_map)
-    local mappings = to_path_mappings(prof.path_map)
+    local cont_cc_dir = utils_docker.map_host_to_container(host_cc_dir, profile.path_map)
+    local mappings = to_path_mappings(profile.path_map)
     local cmd = {
       "docker",
       "exec",
       "-i",
-      prof.container,
-      prof.clangd_bin,
+      profile.container,
+      profile.clangd_bin,
       "--path-mappings=" .. mappings,
       "--compile-commands-dir=" .. cont_cc_dir,
     }
@@ -224,37 +157,36 @@ local function build_clangd_cmd()
   end
 end
 
-local clangd_cmd = build_clangd_cmd()
-
 -- root dir -------------------------------------------------------------------
-local function clangd_root_dir(bufnr, cb)
-  if cwd:match("(.+/catkin_ws_20)/src/[^/]+") then
-    return cb(cwd)
-  end
-  local fname = vim.api.nvim_buf_get_name(bufnr)
-  local contains_build_dir = vim.fs.find("build", { path = fname, upward = true })[1]
-  if contains_build_dir then
-    log("root_dir = contains_build_dir: " .. vim.fs.dirname(contains_build_dir))
-    return cb(vim.fs.dirname(contains_build_dir))
-  end
-  local git_dir = vim.fs.find(".git", { path = fname, upward = true })[1]
-  if git_dir then
-    log("root_dir = git_dir: " .. vim.fs.dirname(git_dir))
-    return cb(vim.fs.dirname(git_dir))
-  end
-  return cb(cwd)
-end
+
+-- local function clangd_root_dir(bufnr, cb)
+--   if cwd:match("(.+/catkin_ws_20)/src/[^/]+") then
+--     return cb(cwd)
+--   end
+--   local fname = vim.api.nvim_buf_get_name(bufnr)
+--   local contains_build_dir = vim.fs.find("build", { path = fname, upward = true })[1]
+--   if contains_build_dir then
+--     log("root_dir = contains_build_dir: " .. vim.fs.dirname(contains_build_dir))
+--   return cb(vim.fs.dirname(contains_build_dir))
+--   end
+--   local git_dir = vim.fs.find(".git", { path = fname, upward = true })[1]
+--   if git_dir then
+--     log("root_dir = git_dir: " .. vim.fs.dirname(git_dir))
+--     return cb(vim.fs.dirname(git_dir))
+--   end
+--   return cb(cwd)
+-- end
 
 -- public LSP config ----------------------------------------------------------
 M.config = {
-  cmd = clangd_cmd,
+  cmd = build_clangd_cmd(),
   filetypes = { "c", "cpp" },
   -- root_dir = clangd_root_dir,
   root_markers = { "compile_commands.json", ".clang", "package.xml", ".git" },
   init_options = { clangdFileStatus = true },
   settings = {},
 }
-log("using root_dir: " .. table.concat(M.config))
+-- log("using root_dir: " .. table.concat(M.config))
 
 return M.config
 
