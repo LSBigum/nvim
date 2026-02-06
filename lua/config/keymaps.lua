@@ -22,8 +22,14 @@ vim.keymap.set("v", "p", '"_dp')
 vim.keymap.set("v", "P", '"_dP')
 
 -- Move line on the screen rather than by line in the file
-vim.keymap.set("n", "j", "gj", opts)
-vim.keymap.set("n", "k", "gk", opts)
+-- Does not apply when j/k is prefixed with a count, so '10j' will move according to the relative line count
+vim.keymap.set("n", "j", function()
+  return vim.v.count == 0 and "gj" or "j"
+end, vim.tbl_extend("force", opts, { expr = true }))
+
+vim.keymap.set("n", "k", function()
+  return vim.v.count == 0 and "gk" or "k"
+end, vim.tbl_extend("force", opts, { expr = true }))
 
 -- Move to start/end of line
 vim.keymap.set({ "n", "x", "o" }, "H", "^", opts)
