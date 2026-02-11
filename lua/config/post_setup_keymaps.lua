@@ -1,6 +1,11 @@
 local wk = require('which-key')
-wk.add{ "<leader>cf", require("config.utils").copyFilePathAndLineNumber,    desc = "Copy File Path and Line Number" }
-wk.add{ "<leader>cg", require("config.utils").copyFilePathAndLineNumberGit, desc = "Copy Git File Path and Line Number" }
+wk.add{ "<leader>cr", group = "[R]elative" }
+wk.add{ "<leader>ca", group = "[A]bsolute" }
+wk.add{ "<leader>crf", require("config.utils").copyFilePathRelative,              desc = "Copy File Path (relative)" }
+wk.add{ "<leader>crl", require("config.utils").copyFilePathAndLineNumberRelative, desc = "Copy File Path and Line Number (relative)" }
+wk.add{ "<leader>caf", require("config.utils").copyFilePathAbsolute,              desc = "Copy File Path (absolute)" }
+wk.add{ "<leader>cal", require("config.utils").copyFilePathAndLineNumberAbsolute, desc = "Copy File Path and Line Number (absolute)" }
+wk.add{ "<leader>cg",  require("config.utils").copyFilePathAndLineNumberGit,      desc = "Copy Git File Path and Line Number" }
 
 -- Toggle quickfix
 local function toggle_qf()

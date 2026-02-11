@@ -37,6 +37,7 @@ return {
       enabled = true,
       sources = {
         explorer = {
+          hidden = true,
           win = {
             list = {
               wo = {
@@ -46,8 +47,31 @@ return {
           },
         },
       },
+      ---@class snacks.picker.files.Config: snacks.picker.proc.Config
+      files = { hidden = true },
+      ---@class snacks.picker.grep.Config: snacks.picker.proc.Config
+      grep = { hidden = true },
+      show_empty = true,
+      win = {
+        -- input window
+        input = {
+          keys = {
+            ["<M-H>"] = { "toggle_hidden", mode = { "n", "i" } },
+            ["<M-I>"] = { "toggle_ignored", mode = { "n", "i" } },
+            ["<M-R>"] = { "toggle_regex", mode = { "n" } },
+          },
+        },
+        -- result list window
+        list = {
+          keys = {
+            ["<M-H>"] = { "toggle_hidden", mode = { "n", "i" } },
+            ["<M-I>"] = { "toggle_ignored", mode = { "n", "i" } },
+          },
+        },
+      },
     },
     quickfile = { enabled = true },
+    root = { auto = true, },
     scope = { enabled = true },
     scroll = { enabled = false },
     statuscolumn = { enabled = true },
@@ -78,9 +102,9 @@ return {
     {
       "<leader>/",
       function()
-        Snacks.picker.grep()
+        Snacks.picker.grep({ cwd = vim.loop.cwd() })
       end,
-      desc = "Grep",
+      desc = "Grep (cwd)",
     },
     {
       "<C-s>",
@@ -127,14 +151,13 @@ return {
     },
     -- find
     {
-      "<leader>o",
+      "<leader>b",
       function()
         Snacks.picker.buffers({
           win = {
             input = {
               keys = {
                 ["dd"] = "bufdelete",
-                ["<c-d>"] = { "bufdelete", mode = { "n", "i" } },
               },
             },
             list = { keys = { ["dd"] = "bufdelete" } },
@@ -153,9 +176,9 @@ return {
     {
       "<leader>ff",
       function()
-        Snacks.picker.files()
+        Snacks.picker.files({ cwd = vim.loop.cwd() })
       end,
-      desc = "Find Files",
+      desc = "Find Files (cwd)",
     },
     {
       "<leader>fg",
@@ -364,7 +387,7 @@ return {
       desc = "Quickfix List",
     },
     {
-      "<leader>sR",
+      "<leader>sr",
       function()
         Snacks.picker.resume()
       end,
@@ -555,8 +578,8 @@ return {
         })
       end,
     },
-    { "gai", function() Snacks.picker.lsp_incoming_calls() end, desc = "C[a]lls Incoming" },
-    { "gao", function() Snacks.picker.lsp_outgoing_calls() end, desc = "C[a]lls Outgoing" },
+    { "gai", function() Snacks.picker.lsp_incoming_calls() end, desc = "Calls [I]ncoming" },
+    { "gao", function() Snacks.picker.lsp_outgoing_calls() end, desc = "Calls [O]utgoing" },
   },
   init = function()
     vim.api.nvim_create_autocmd("User", {

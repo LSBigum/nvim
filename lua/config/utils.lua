@@ -27,13 +27,32 @@ M.copyFilePathAndLineNumberGit = function()
   end
 end
 
+M.copyFilePathRelative = function()
+  local current_file = vim.fn.expand("%:.")
+  vim.fn.setreg("+", current_file)
+  print("Copied relative path to clipboard: " .. current_file)
+end
+
+M.copyFilePathAndLineNumberRelative = function()
+  local current_file = vim.fn.expand("%:.")
+  local current_line = vim.fn.line(".")
+  vim.fn.setreg("+", current_file .. ":" .. current_line)
+  print("Copied relative path with line number to clipboard: " .. current_file .. ":" .. current_line)
+end
+
+M.copyFilePathAbsolute = function()
+  local current_file = vim.fn.expand("%:p")
+  vim.fn.setreg("+", current_file)
+  print("Copied absolute path to clipboard: " .. current_file)
+end
+
 -- Copy the current file path and line number to the clipboard, use GitHub URL if in a Git repository
-M.copyFilePathAndLineNumber = function()
+M.copyFilePathAndLineNumberAbsolute = function()
   local current_file = vim.fn.expand("%:p")
   local current_line = vim.fn.line(".")
 
   vim.fn.setreg("+", current_file .. ":" .. current_line)
-  print("Copied full path to clipboard: " .. current_file .. ":" .. current_line)
+  print("Copied absolute path with line number to clipboard: " .. current_file .. ":" .. current_line)
 end
 
 function M.get_package_name()
