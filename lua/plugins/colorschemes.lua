@@ -377,6 +377,15 @@ return {
       vim.g.gruvbox_material_better_performance = 1
 
       vim.cmd.colorscheme("gruvbox-material")
+      vim.api.nvim_set_hl(0, "SnacksPickerGitStatusUntracked", {
+        fg = "#7c6f64",  -- Gruvbox "fg3" brown-gray; dim but readable
+      })
+      vim.api.nvim_set_hl(0, "SnacksPickerPathIgnored", {
+        fg = "#7c6f64",
+      })
+      vim.api.nvim_set_hl(0, "SnacksPickerPathHidden", {
+        fg = "#7c6f64",
+      })
     end,
   },
 
