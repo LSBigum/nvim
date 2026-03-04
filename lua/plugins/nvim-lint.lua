@@ -33,6 +33,12 @@ return {
           '-'
         },
       },
+      ["markdownlint-cli2"] = {
+        args = {
+          "--config",
+          vim.fn.stdpath("config") .. "/.markdownlint-cli2.jsonc"
+        },
+      },
       -- -- Example of using selene only when a selene.toml file is present
       -- selene = {
       --   -- `condition` is another LazyVim extension that allows you to
