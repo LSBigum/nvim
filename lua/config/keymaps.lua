@@ -43,3 +43,13 @@ vim.keymap.set("n", "<Left>", ":bprevious<CR>", opts)
 vim.keymap.set("n", "X", ":keeppatterns substitute/\\s*\\%#\\s*/\\r/e <bar> normal! ==^<cr>", { silent = true })
 
 vim.keymap.set("n", "<Esc>", ":nohlsearch<CR>", opts)
+
+-- Resizing: Ctrl + Arrow keys
+vim.keymap.set("n", "<C-Up>",    "<cmd>resize +2<cr>",          { desc = "Resize up" })
+vim.keymap.set("n", "<C-Down>",  "<cmd>resize -2<cr>",          { desc = "Resize down" })
+vim.keymap.set("n", "<C-Left>",  "<cmd>vertical resize -2<cr>", { desc = "Resize left" })
+vim.keymap.set("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Resize right" })
+
+-- Exit insert-mode when in a terminal with ESC.
+vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { noremap = true, silent = true })
+
