@@ -20,6 +20,7 @@ end
 wk.add{"<leader>q", group = "[Q]uickfix/[Q]uit"}
 wk.add{"<leader>qf", toggle_qf, desc = "Toggle quickfix" }
 wk.add{"<leader>q<cr>", "<cmd>q<cr>", desc = "Quit" }
+wk.add{"<leader>qa<cr>", "<cmd>qa<cr>", desc = "Quit all" }
 
 wk.add{ "<leader>w", group = "[W]rite..."}
 wk.add{ "<leader>w<cr>", "<cmd>w<cr>", desc = "Save file" }
