@@ -31,6 +31,10 @@ return {
                     "docker_compose_language_service",
                     "dockerls",
                     "gitlab_ci_ls",
+                    "gopls",
+                    "helm_ls",
+                    "html",
+                    "jsonls",
                     "lemminx", -- XML
                     "lua_ls",
                     "pyright",
@@ -42,12 +46,14 @@ return {
                     "beautysh", -- bash formatter
                     "black", -- python
                     "buf",
+                    "checkmake", -- makefile
                     "clang-format", -- cpp formatter
                     "cmakelint",
                     "commitlint",
                     "cpplint", -- cpp linter
                     "isort", -- python
                     "jsonlint",
+                    "mbake", -- makefile
                     "markdownlint-cli2",
                     "protolint",
                     "selene", -- lua

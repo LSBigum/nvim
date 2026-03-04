@@ -12,6 +12,7 @@ return {
       json = { "jsonlint" },
       lua = { "selene" },
       proto = { "protolint" },
+      makefile = { "checkmake" },
       markdown = { "markdownlint-cli2" },
       yaml = { "yamllint" }
     },
