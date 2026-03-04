@@ -59,6 +59,8 @@ return {
             ["<M-H>"] = { "toggle_hidden", mode = { "n", "i" } },
             ["<M-I>"] = { "toggle_ignored", mode = { "n", "i" } },
             ["<M-R>"] = { "toggle_regex", mode = { "n" } },
+            ["<C-u>"] = { "list_scroll_up", mode = { "n" } }, -- only normal mode
+            ["<C-d>"] = { "list_scroll_down", mode = { "n" } }, -- only normal mode
           },
         },
         -- result list window
@@ -151,7 +153,7 @@ return {
     },
     -- find
     {
-      "<leader>b",
+      "<leader>sB",
       function()
         Snacks.picker.buffers({
           win = {
@@ -174,11 +176,11 @@ return {
       desc = "Find Config File",
     },
     {
-      "<leader>ff",
+      "<leader>sf",
       function()
         Snacks.picker.files({ cwd = vim.loop.cwd() })
       end,
-      desc = "Find Files (cwd)",
+      desc = "Search Files (cwd)",
     },
     {
       "<leader>fg",

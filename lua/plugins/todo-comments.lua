@@ -3,19 +3,6 @@ return {
   dependencies = { "nvim-lua/plenary.nvim" },
   opts = {
     -- make TODO(name): searchable with rg
-    -- search = {
-    --   pattern = [[\b(KEYWORDS)\s*(\([^)]*\))?:]],
-    -- },
-    --
-    -- -- make the WHOLE TODO line pop, not just up to '('
-    -- highlight = {
-    --   before = "", -- don't color the comment prefix
-    --   keyword = "wide_bg", -- bg on the keyword + nearby punctuation (e.g. '(' or ':')
-    --   after = "bg", -- <— bg for everything after the keyword
-    --   pattern = [[.*<(KEYWORDS)\s*%(\([^)]*\))?:]], -- same match as before
-    --   -- comments_only = true, max_line_len = 400 (defaults are fine)
-    -- },
-    -- project search (rg): still matches TODO: and TODO(name):
     search = {
       pattern = [[\b(KEYWORDS)\s*(\([^)]*\))?:]],
     },
@@ -30,5 +17,9 @@ return {
     -- optional: lock to only TODO if you want
     -- keywords = { TODO = { icon = " ", color = "info" } },
     -- merge_keywords = false,
+  },
+  keys = {
+    { "<leader>st", function() Snacks.picker.todo_comments() end, desc = "Todo" },
+    { "<leader>sT", function() Snacks.picker.todo_comments({ keywords = { "TODO", "FIX", "FIXME" } }) end, desc = "Todo/Fix/Fixme" },
   },
 }
