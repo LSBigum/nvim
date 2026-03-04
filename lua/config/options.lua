@@ -68,3 +68,6 @@ vim.filetype.add({
         ["%.env%.[%w_.-]+"] = "dotenv",
     },
 })
+
+vim.o.exrc = true -- Allow executing lua scripts outside the nvim config directory.
+                  -- Used to allow Overseer to run .nvim.lua files for project specific configs.
