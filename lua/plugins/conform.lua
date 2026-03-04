@@ -1,16 +1,20 @@
 return {
   "stevearc/conform.nvim",
-  event = { "LspAttach" },
+  dependencies = { "lewis6991/gitsigns.nvim" },
   keys = {
     {
       "<leader>lf",
       function()
-        print("Performed conform formatting")
         local format = require("conform").format
         local hunks = require("gitsigns").get_hunks()
-        if hunks == nil then
+        if not hunks or vim.tbl_isempty(hunks) then
+          -- fallback: whole buffer
+          format()
+          print("Performed fallback conform formatting (entire buffer)")
           return
         end
+
+        local format_performed = false
         for _, hunk in ipairs(hunks) do
           if hunk ~= nil and hunk.type ~= "delete" then
             local start = hunk.added.start
@@ -19,7 +23,13 @@ return {
             local last_hunk_line = vim.api.nvim_buf_get_lines(0, last - 2, last - 1, true)[1]
             local range = { start = { start, 0 }, ["end"] = { last - 1, last_hunk_line:len() } }
             format({ range = range })
+            format_performed = true
           end
+        end
+        if format_performed then
+          print("Performed conform formatting")
+        else
+          print("No formatting performed")
         end
       end,
       desc = "[F]ormat buffer",
