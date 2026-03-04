@@ -117,7 +117,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         end
 
 
-        map("gl", vim.diagnostic.open_float, "Open Diagnostic Float")
+        map("<leader>xd", vim.diagnostic.open_float, "Open Diagnostic Float")
         map("gD", vim.lsp.buf.declaration, "Goto Declaration")
         map("<leader>v", "<cmd>vsplit | lua vim.lsp.buf.definition()<cr>", "Goto Definition in Vertical Split")
 
