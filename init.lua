@@ -6,4 +6,5 @@ require("config.autocmds")
 
 require("core.lazy")
 
+require("config.git")
 require("config.post_setup_keymaps")

@@ -238,11 +238,26 @@ return {
       desc = "Git Stash",
     },
     {
-      "<leader>Gd",
+      "<leader>Gdd",
       function()
         Snacks.picker.git_diff()
       end,
       desc = "Git Diff (Hunks)",
+    },
+    {
+      "<leader>Gdt",
+      function()
+        Snacks.toggle({
+          name = "Diffview",
+          get = function()
+            return require("diffview.lib").get_current_view() ~= nil
+          end,
+          set = function(state)
+            vim.cmd("Diffview" .. (state and "Open" or "Close"))
+          end,
+        })
+      end,
+      desc = "Toggle Diffview",
     },
     {
       "<leader>Gf",
@@ -502,13 +517,6 @@ return {
       desc = "Delete Buffer",
     },
     {
-      "<leader>RR",
-      function()
-        Snacks.rename.rename_file()
-      end,
-      desc = "Rename File",
-    },
-    {
       "<leader>GB",
       function()
         Snacks.gitbrowse()
@@ -519,9 +527,40 @@ return {
     {
       "<leader>gg",
       function()
+        local file = vim.api.nvim_buf_get_name(0)
+        if file == "" then return end
+        -- Snacks.lazygit({ args = { "-f", file } })
         Snacks.lazygit()
       end,
       desc = "Lazygit",
+    },
+    {
+      "<leader>gf",
+      function()
+        local file = vim.api.nvim_buf_get_name(0)
+        if file == "" then
+          return
+        end
+
+        -- open normal lazygit view
+        Snacks.lazygit()
+
+        -- after the terminal is up, send keys:
+        -- 2 = focus Files panel (common default), / = filter, then the filename, then <CR>
+        vim.defer_fn(function()
+          local chan = vim.b.terminal_job_id
+          if not chan then
+            return
+          end
+
+          -- use basename so it matches quickly; change to a repo-relative path if you prefer
+          local needle = vim.fn.fnamemodify(file, ":t")
+
+          -- "2" to go to Files panel, then filter
+          vim.fn.chansend(chan, "2/" .. needle .. "\r")
+        end, 60)
+      end,
+      desc  = "Lazygit (current file)"
     },
     {
       "<leader>un",
@@ -543,22 +582,6 @@ return {
         Snacks.terminal()
       end,
       desc = "which_key_ignore",
-    },
-    {
-      "]]",
-      function()
-        Snacks.words.jump(vim.v.count1)
-      end,
-      desc = "Next Reference",
-      mode = { "n", "t" },
-    },
-    {
-      "[[",
-      function()
-        Snacks.words.jump(-vim.v.count1)
-      end,
-      desc = "Prev Reference",
-      mode = { "n", "t" },
     },
     {
       "<leader>N",
