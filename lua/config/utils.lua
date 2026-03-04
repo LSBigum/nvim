@@ -9,8 +9,9 @@ M.copyFilePathAndLineNumberGit = function()
     local current_repo = vim.fn.systemlist("git remote get-url origin")[1]
     local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1]
 
-    -- Convert Git URL to GitHub web URL format
+    -- Convert Git URL to GitHub/GitLab web URL format
     current_repo = current_repo:gsub("git@github.com:", "https://github.com/")
+    current_repo = current_repo:gsub("git@gitlab.com:", "https://gitlab.com/")
     current_repo = current_repo:gsub("%.git$", "")
 
     -- Remove leading system path to repository root
