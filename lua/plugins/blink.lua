@@ -4,6 +4,7 @@ return {
         "saghen/blink.cmp",
         dependencies = {
             "rafamadriz/friendly-snippets",
+            "Fildo7525/pretty_hover",
         },
         -- event = "InsertEnter",
         version = "*",
@@ -98,6 +99,14 @@ return {
                         },
                         auto_show = true,
                         auto_show_delay_ms = 500,
+                        draw = 
+                            function(opts)
+                                if opts.item and opts.item.documentation and opts.item.documentation.value then
+                                    local out = require("pretty_hover.parser").parse(opts.item.documentation.value)
+                                    opts.item.documentation.value = out:string()
+                                end
+                                opts.default_implementation(opts)
+                            end,
                     },
                 },
             })
