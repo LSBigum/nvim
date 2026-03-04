@@ -43,7 +43,7 @@ end
 local function find_host_compile_dir()
   -- All branches below return **host** paths only.
 
-  -- 1) /…/catkin_ws_20/src/hawk/<proj> -> /…/catkin_ws_20/build/<proj>
+  -- /.../catkin_ws_20/src/hawk/<proj> -> /.../catkin_ws_20/build/<proj>
   do
     local ws, proj = cwd:match("(.+/catkin_ws_20)/src/hawk/([^/]+)")
     if ws and proj then
@@ -52,10 +52,11 @@ local function find_host_compile_dir()
         log("host compile_commands_dir=" .. dir)
         return dir
       end
+      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
-  -- 2) /…/catkin_ws_20/src/<proj> -> /…/catkin_ws_20/build/<proj>
+  -- /.../catkin_ws_20/src/<proj> -> /.../catkin_ws_20/build/<proj>
   do
     local ws, proj = cwd:match("(.+/catkin_ws_20)/src/([^/]+)")
     if ws and proj then
@@ -64,10 +65,24 @@ local function find_host_compile_dir()
         log("host compile_commands_dir=" .. dir)
         return dir
       end
+      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
-  -- 3) /…/catkin_ws_core/src/hawk-core/packages/<proj> -> /…/catkin_ws_core/build/<proj>
+  do
+    local ws, proj = cwd:match("(.+/catkin_ws_non_core)/src/hawk%-non%-core/([^/]+)")
+    if ws and proj then
+      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
+      if dir then
+        log("host compile_commands_dir=" .. dir)
+        return dir
+      end
+      log("Could not find " .. path_join(path_join(ws, "build"), proj))
+    end
+  end
+
+
+  -- /.../catkin_ws_core/src/hawk-core/packages/<proj> -> /.../catkin_ws_core/build/<proj>
   do
     local ws, proj = cwd:match("(.+/catkin_ws_core)/src/hawk%-core/packages/([^/]+)")
     if ws and proj then
@@ -76,10 +91,11 @@ local function find_host_compile_dir()
         log("host compile_commands_dir=" .. dir)
         return dir
       end
+      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
-  -- 4) /…/catkin_ws_test/src/hawk/<proj> -> /…/catkin_ws_test/build/<proj>
+  -- /.../catkin_ws_test/src/hawk/<proj> -> /.../catkin_ws_test/build/<proj>
   do
     local ws, proj = cwd:match("(.+/catkin_ws_test)/src/hawk/([^/]+)")
     if ws and proj then
@@ -88,6 +104,7 @@ local function find_host_compile_dir()
         log("host compile_commands_dir=" .. dir)
         return dir
       end
+      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
@@ -99,6 +116,7 @@ local function find_host_compile_dir()
         log("host compile_commands_dir=" .. dir)
         return dir
       end
+      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
@@ -127,7 +145,8 @@ local function build_clangd_cmd()
     "--header-insertion=iwyu",
     "--pretty",
     "-j=8",
-    "--log=verbose",
+    "--query-driver=/usr/bin/c++",
+    -- "--log=verbose",
   }
 
   local profile = utils_docker.detect_profile(cwd)
