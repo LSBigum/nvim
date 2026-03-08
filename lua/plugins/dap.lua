@@ -203,9 +203,22 @@ return {
       vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
     end
 
+    local function ring_terminal_bell()
+      vim.fn.chansend(vim.v.stderr, "\x07")
+    end
+
     dap.listeners.after.event_initialized["dapui_config"] = dapui.open
     dap.listeners.before.event_terminated["dapui_config"] = dapui.close
     dap.listeners.before.event_exited["dapui_config"] = dapui.close
+    dap.listeners.after.event_stopped["bell_on_breakpoint"] = function(_, body)
+      local reason = body and body.reason or nil
+      if reason == "breakpoint"
+        or reason == "function breakpoint"
+        or reason == "instruction breakpoint"
+        or reason == "data breakpoint" then
+        ring_terminal_bell()
+      end
+    end
 
     dap.adapters.lldb = {
       type = "executable",
