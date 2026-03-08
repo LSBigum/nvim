@@ -255,10 +255,8 @@ return {
     --   },
     -- }
 
-    local dap = require("dap")
-
     -- Name your running container here
-    local CONTAINER = "hawktest_compiler"
+    local CONTAINER = "hawk20_compiler"
 
     -- Helper: pick a PID from inside the container
     local function pick_container_process()
@@ -317,7 +315,7 @@ return {
 
     -- Path mapping: container -> host
     local source_map = {
-      ["/home/nordbo_docker/catkin_ws"] = "/home/nordbo/catkin_ws_test",
+      ["/home/nordbo_docker/catkin_ws"] = "/home/nordbo/catkin_ws_non_core",
       -- add more entries if needed
     }
 
