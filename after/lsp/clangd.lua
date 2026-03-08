@@ -28,6 +28,22 @@ local function to_path_mappings(map)
   return table.concat(parts, ",")
 end
 
+local function find_nearest_package_name(start_path)
+  local pkg_xml = vim.fs.find("package.xml", {
+    path = start_path,
+    upward = true,
+    stop = vim.loop.os_homedir(),
+  })[1]
+
+  if not pkg_xml then
+    return nil, nil
+  end
+
+  local pkg_dir = vim.fs.dirname(pkg_xml)
+  local pkg_name = vim.fs.basename(pkg_dir)
+  return pkg_name, pkg_dir
+end
+
 -- host-side compile_commands discovery --------------------------------------
 local function prefer_compile_commands_dir(dir)
   if not dir or not dir_exists(dir) then
@@ -41,70 +57,66 @@ local function prefer_compile_commands_dir(dir)
 end
 
 local function find_host_compile_dir()
-  -- All branches below return **host** paths only.
+  -- First try catkin workspaces by locating the nearest package.xml and
+  -- using its parent directory name as the package name.
 
-  -- /.../catkin_ws_20/src/hawk/<proj> -> /.../catkin_ws_20/build/<proj>
   do
-    local ws, proj = cwd:match("(.+/catkin_ws_20)/src/hawk/([^/]+)")
-    if ws and proj then
-      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
-      if dir then
-        log("host compile_commands_dir=" .. dir)
-        return dir
+    local ws = cwd:match("(.+/catkin_ws_20)")
+    if ws then
+      local pkg_name = find_nearest_package_name(cwd)
+      if pkg_name then
+        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
+        if dir then
+          log("host compile_commands_dir=" .. dir)
+          return dir
+        end
+        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
       end
-      log("Could not find " .. path_join(path_join(ws, "build"), proj))
-    end
-  end
-
-  -- /.../catkin_ws_20/src/<proj> -> /.../catkin_ws_20/build/<proj>
-  do
-    local ws, proj = cwd:match("(.+/catkin_ws_20)/src/([^/]+)")
-    if ws and proj then
-      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
-      if dir then
-        log("host compile_commands_dir=" .. dir)
-        return dir
-      end
-      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
   do
-    local ws, proj = cwd:match("(.+/catkin_ws_non_core)/src/hawk%-non%-core/([^/]+)")
-    if ws and proj then
-      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
-      if dir then
-        log("host compile_commands_dir=" .. dir)
-        return dir
+    local ws = cwd:match("(.+/catkin_ws_non_core)")
+    if ws then
+      local pkg_name = find_nearest_package_name(cwd)
+      if pkg_name then
+        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
+        if dir then
+          log("host compile_commands_dir=" .. dir)
+          return dir
+        end
+        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
       end
-      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
-
-  -- /.../catkin_ws_core/src/hawk-core/packages/<proj> -> /.../catkin_ws_core/build/<proj>
   do
-    local ws, proj = cwd:match("(.+/catkin_ws_core)/src/hawk%-core/packages/([^/]+)")
-    if ws and proj then
-      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
-      if dir then
-        log("host compile_commands_dir=" .. dir)
-        return dir
+    local ws = cwd:match("(.+/catkin_ws_core)")
+    if ws then
+      local pkg_name = find_nearest_package_name(cwd)
+      if pkg_name then
+        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
+        if dir then
+          log("host compile_commands_dir=" .. dir)
+          return dir
+        end
+        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
       end
-      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
-  -- /.../catkin_ws_test/src/hawk/<proj> -> /.../catkin_ws_test/build/<proj>
   do
-    local ws, proj = cwd:match("(.+/catkin_ws_test)/src/hawk/([^/]+)")
-    if ws and proj then
-      local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
-      if dir then
-        log("host compile_commands_dir=" .. dir)
-        return dir
+    local ws = cwd:match("(.+/catkin_ws_test)")
+    if ws then
+      local pkg_name = find_nearest_package_name(cwd)
+      if pkg_name then
+        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
+        if dir then
+          log("host compile_commands_dir=" .. dir)
+          return dir
+        end
+        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
       end
-      log("Could not find " .. path_join(path_join(ws, "build"), proj))
     end
   end
 
@@ -133,7 +145,6 @@ local function find_host_compile_dir()
   log("host compile_commands_dir fallback to cwd=" .. cwd)
   return cwd
 end
-
 -- command assembly -----------------------------------------------------------
 local function build_clangd_cmd()
   local host_cc_dir = find_host_compile_dir()
