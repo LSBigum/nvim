@@ -25,7 +25,21 @@ return {
       desc = 'Debug: Start/Continue',
     },
     {
+      '<F7>',
+      function()
+        require("dap").continue()
+      end,
+      desc = 'Debug: Start/Continue',
+    },
+    {
       '<leader>dsi',
+      function()
+        require("dap").step_into()
+      end,
+      desc = 'Debug: Step Into',
+    },
+    {
+      '<F8>',
       function()
         require("dap").step_into()
       end,
@@ -39,7 +53,21 @@ return {
       desc = 'Debug: Step Over',
     },
     {
+      '<F9>',
+      function()
+        require("dap").step_over()
+      end,
+      desc = 'Debug: Step Over',
+    },
+    {
       '<leader>dsb',
+      function()
+        require("dap").step_out()
+      end,
+      desc = 'Debug: Step Out ([B]ack)',
+    },
+    {
+      '<F10>',
       function()
         require("dap").step_out()
       end,
@@ -53,14 +81,14 @@ return {
       desc = 'Debug: Close dap-ui',
     },
     {
-      '<leader>db',
+      '<leader>dd',
       function()
         require("dap").toggle_breakpoint()
       end,
       desc = 'Debug: Toggle Breakpoint',
     },
     {
-      '<leader>dB',
+      '<leader>db',
       function()
         require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
       end,
@@ -68,7 +96,7 @@ return {
     },
     -- Toggle to see last session result. Without this, you can't see session output in case of unhandled exception.
     {
-      '<leader>dt',
+      '<leader>du',
       function()
         require("dapui").toggle()
       end,
@@ -87,6 +115,14 @@ return {
         require("dapui").open()
       end,
       desc = 'Debug: Open dap-ui',
+    },
+    {
+      "<leader>dw",
+      function()
+        require("dapui").eval(nil, { enter = false })
+      end,
+      desc = "Add word under cursor to Watches",
+      mode = { "n", "v" },
     },
   },
   config = function()
@@ -121,19 +157,34 @@ return {
       --    Feel free to remove or use ones that you like more! :)
       --    Don't feel like these are good choices.
       icons = { expanded = "▾", collapsed = "▸", current_frame = "*" },
-      controls = {
-        icons = {
-          pause = "⏸",
-          play = "▶",
-          step_into = "⏎",
-          step_over = "⏭",
-          step_out = "⏮",
-          step_back = "b",
-          run_last = "▶▶",
-          terminate = "⏹",
-          disconnect = "⏏",
+      controls = { enabled = false }, -- no extra play/step buttons
+      floating = { border = "rounded" },
+      expand_lines = true,
+      render = {
+        max_type_length = 60,
+        max_value_lines = 200,
+      },
+      layouts = {
+        {
+          elements = {
+            {
+              id = "scopes",
+              size = 0.5
+            },
+            {
+              id = "breakpoints",
+              size = 0.25
+            },
+            {
+              id = "watches",
+              size = 0.25
+            },
+          },
+          position = "bottom",
+          size = 15
         },
       },
+
     })
 
     -- Change breakpoint icons
