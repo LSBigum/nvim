@@ -1,4 +1,3 @@
--- return {}
 return {
   'mfussenegger/nvim-dap',
   dependencies = {
@@ -14,6 +13,8 @@ return {
 
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
+
+    'theHamsta/nvim-dap-virtual-text',
   },
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
@@ -92,7 +93,7 @@ return {
       function()
         require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
       end,
-      desc = 'Debug: Set Breakpoint',
+      desc = 'Debug: Set conditional breakpoint',
     },
     -- Toggle to see last session result. Without this, you can't see session output in case of unhandled exception.
     {
@@ -124,6 +125,32 @@ return {
       desc = "Add word under cursor to Watches",
       mode = { "n", "v" },
     },
+    {
+      "<leader>dv",
+      function()
+        require("dapui").float_element("breakpoints")
+      end,
+      desc = "Debug: [v]iew breakpoints in floating window"
+    },
+    {
+      "<leader>df",
+      function()
+        require("dap").focus_frame()
+      end,
+      desc = "Debug: [f]ocus on current frame"
+    },
+    { '<leader>dsu',
+      function()
+        require("dap").up()
+      end ,
+      desc = 'Debug: DAP Stack UP'
+    },
+    { '<leader>dsd',
+      function()
+        require("dap").down()
+      end,
+      desc = 'Debug: DAP Stack DOWN'
+    },
   },
   config = function()
     local dap = require("dap")
@@ -154,8 +181,6 @@ return {
     -- For more information, see |:help nvim-dap-ui|
     dapui.setup({
       -- Set icons to characters that are more likely to work in every terminal.
-      --    Feel free to remove or use ones that you like more! :)
-      --    Don't feel like these are good choices.
       icons = { expanded = "▾", collapsed = "▸", current_frame = "*" },
       controls = { enabled = false }, -- no extra play/step buttons
       floating = { border = "rounded" },
@@ -164,27 +189,51 @@ return {
         max_type_length = 60,
         max_value_lines = 200,
       },
+      element_mappings = {
+        stacks = {
+          open = "<CR>",
+          expand = "o",
+        }
+      },
       layouts = {
         {
           elements = {
             {
-              id = "scopes",
-              size = 0.5
-            },
-            {
-              id = "breakpoints",
-              size = 0.25
-            },
-            {
               id = "watches",
-              size = 0.25
+              size = 0.50
+            },
+            {
+              id = "console",
+              size = 0.50
             },
           },
           position = "bottom",
-          size = 15
+          size = 10
+        },
+        {
+          elements = {
+            {
+              id = "scopes",
+              size = 0.50,
+            },
+            {
+              id = "repl",
+              size = 0.50,
+            },
+          },
+          position = "bottom",
+          size = 10
+        },
+        {
+          elements = {
+            {
+              id = "stacks",
+            },
+          },
+          position = "left",
+          size = 3
         },
       },
-
     })
 
     -- Change breakpoint icons
@@ -203,10 +252,6 @@ return {
       vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
     end
 
-    local function ring_terminal_bell()
-      vim.fn.chansend(vim.v.stderr, "\x07")
-    end
-
     dap.listeners.after.event_initialized["dapui_config"] = dapui.open
     dap.listeners.before.event_terminated["dapui_config"] = dapui.close
     dap.listeners.before.event_exited["dapui_config"] = dapui.close
@@ -216,44 +261,14 @@ return {
         or reason == "function breakpoint"
         or reason == "instruction breakpoint"
         or reason == "data breakpoint" then
-        ring_terminal_bell()
+        vim.fn.chansend(vim.v.stderr, "\x07") -- Ring terminal bell
       end
     end
 
     dap.adapters.lldb = {
       type = "executable",
-      command = vim.fn.exepath("lldb-dap-18"),
+      command = vim.fn.exepath("lldb-dap-20"),
     }
-
-    -- dap.adapters.lldb_docker = {
-    --   type = "executable",
-    --   command = "docker",
-    --   args = { "exec", "-i", "hawktest_compiler", "bash", "-c", "lldb-dap-18" },
-    -- }
-    --
-    -- dap.configurations.cpp = {
-    --   {
-    --     name = "C++ attach",
-    --     type = "lldb_docker",
-    --     request = "attach",
-    --     pid = require("dap.utils").pick_process,
-    --     -- program = require('dap.utils').pick_file(),
-    --     sourceMap = {
-    --       { "/home/nordbo_docker/catkin_ws", "/home/nordbo/catkin_ws_test" },
-    --     },
-    --   },
-    --   {
-    --     name = "C++ docker launch",
-    --     type = "lldb_docker",
-    --     request = "launch",
-    --     program = function()
-    --     -- require('dap.utils').pick_file,
-    --     end,
-    --     sourceMap = {
-    --       { "/home/nordbo_docker/catkin_ws", "/home/nordbo/catkin_ws_test" },
-    --     },
-    --   },
-    -- }
 
     -- Name your running container here
     local CONTAINER = "hawk20_compiler"
@@ -305,11 +320,10 @@ return {
     dap.adapters.lldb_docker = {
       type = "executable",
       command = "docker",
-      -- Use sh -lc so we can fall back between lldb-dap-18 and lldb-dap
+      -- Use sh -lc so we can fall back between lldb-dap-20 and lldb-dap
       args = {
         "exec", "-i", CONTAINER, "sh", "-lc",
-        -- Prefer 18, fall back to plain lldb-dap if that binary name differs
-        [[command -v lldb-dap-18 >/dev/null 2>&1 && exec lldb-dap-18 || exec lldb-dap]]
+        [[command -v lldb-dap-20 >/dev/null 2>&1 && exec lldb-dap-20 || exec lldb-dap]]
       },
     }
 
@@ -322,7 +336,7 @@ return {
     dap.configurations.cpp = {
       -- Attach to a running C++ process *inside the container*
       {
-        name = "C++ attach (inside container)",
+        name = "Attach (inside container)",
         type = "lldb_docker",
         request = "attach",
         pid = pick_container_process,     -- <— our custom picker
@@ -334,7 +348,7 @@ return {
 
       -- Launch an executable *inside the container*
       {
-        name = "C++ docker launch",
+        name = "Docker launch",
         type = "lldb_docker",
         request = "launch",
         program = function()
@@ -390,5 +404,6 @@ return {
         --         path = "/opt/homebrew/bin/dlv",
         --     }
         -- })
+    require("nvim-dap-virtual-text").setup()
   end,
 }
