@@ -24,13 +24,13 @@ return {
             },
         },
         task_list = {
-            bindings = {
+            keymaps = {
                 h = "DecreaseDetail",
                 l = "IncreaseDetail",
-              ["<C-h>"] = false,
-              ["<C-j>"] = false,
-              ["<C-k>"] = false,
-              ["<C-l>"] = false,
+                ["<C-h>"] = false,
+                ["<C-j>"] = false,
+                ["<C-k>"] = false,
+                ["<C-l>"] = false,
             },
         },
     },
