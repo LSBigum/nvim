@@ -37,8 +37,14 @@ local workspace_profiles = {
     clangd_bin = "clangd-18",
     path_map   = { ["/home/nordbo/catkin_ws_20"] = "/home/nordbo_docker/catkin_ws" },
   },
+  -- {
+  --   match      = "(.+/catkin_ws_non_core)/src/hawk%-non%-core/([^/]+)",
+  --   container  = "hawk20_compiler",
+  --   clangd_bin = "clangd-18",
+  --   path_map   = { ["/home/nordbo/catkin_ws_non_core"] = "/home/nordbo_docker/catkin_ws" },
+  -- },
   {
-    match      = "(.+/catkin_ws_non_core)/src/hawk%-non%-core/([^/]+)",
+    match      = "(.+/catkin_ws_non_core)/src/([^/]+)",
     container  = "hawk20_compiler",
     clangd_bin = "clangd-18",
     path_map   = { ["/home/nordbo/catkin_ws_non_core"] = "/home/nordbo_docker/catkin_ws" },
