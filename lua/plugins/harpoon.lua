@@ -11,7 +11,7 @@ return {
       function()
         require('harpoon'):list():add()
       end,
-      desc = "Add to h[a]rpoon"
+      desc = "[A]dd to harpoon"
     },
     {
       '<C-f>',

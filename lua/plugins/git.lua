@@ -81,20 +81,20 @@ return {
 
           -- Actions
           map('n', '<leader>hs', gitsigns.stage_hunk, { desc = "[s]tage hunk" })
-          map('n', '<leader>hr', gitsigns.reset_hunk, { desc = "[r]eset hunk" })
+          map('n', '<leader>hrr', gitsigns.reset_hunk, { desc = "[r]eset hunk" })
 
           map('v', '<leader>hs', function()
             gitsigns.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') })
           end, 
             { desc = "[s]tage hunk (visual mode)"})
 
-          map('v', '<leader>hr', function()
+          map('v', '<leader>hrr', function()
             gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
           end,
             { desc = "[r]eset hunk (visual mode)"})
 
           map('n', '<leader>hS', gitsigns.stage_buffer, { desc = "[S]tage buffer" })
-          map('n', '<leader>hR', gitsigns.reset_buffer, { desc = "[R]eset buffer" })
+          map('n', '<leader>hRR', gitsigns.reset_buffer, { desc = "[R]eset buffer" })
           map('n', '<leader>hp', gitsigns.preview_hunk, { desc = "[p]review hunk" })
           map('n', '<leader>hi', gitsigns.preview_hunk_inline, { desc = "Preview hunk [i]nline" })
 
@@ -103,18 +103,24 @@ return {
           end,
             { desc = "[b]lame line" })
 
+          map('n', '<leader>hB', function()
+            gitsigns.blame({ full = true })
+          end,
+            { desc = "[B]lame (sidebar)" })
+
           map('n', '<leader>hd', gitsigns.diffthis, { desc = "[d]iff this" })
 
           map('n', '<leader>hD', function()
             gitsigns.diffthis('~')
-          end)
+          end,
+            { desc = "[D]iff this (~)"})
 
           map('n', '<leader>hQ', function() gitsigns.setqflist('all') end, { desc = "Add diffs to [Q]uicklist (all)" })
           map('n', '<leader>hq', gitsigns.setqflist, { desc = "Add diffs to [q]uicklist (buffer)" })
 
           -- Toggles
-          map('n', '<leader>tb', gitsigns.toggle_current_line_blame, { desc = "Toggle [b]lame current line" })
-          map('n', '<leader>tw', gitsigns.toggle_word_diff, { desc = "Toggle [w]ord diff" })
+          map('n', '<leader>hc', gitsigns.toggle_current_line_blame, { desc = "Toggle blame [c]urrent line" })
+          map('n', '<leader>hw', gitsigns.toggle_word_diff, { desc = "Toggle [w]ord diff" })
 
           -- Text object
           map({'o', 'x'}, 'ih', gitsigns.select_hunk, { desc = "Delete inside [h]unk"})
