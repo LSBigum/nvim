@@ -8,8 +8,8 @@ return {
       vim.api.nvim_set_hl(0, "TreesitterContextLineNumberBottom", { underline = true, sp = "Grey" })
     end,
     opts = {
-      max_lines = 1,
-      trim_scope = "inner"
+      max_lines = 0,
+      trim_scope = "inner",
     },
   },
   {
