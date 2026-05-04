@@ -205,49 +205,49 @@ return {
     },
     -- git
     {
-      "<leader>Gb",
+      "<leader>gb",
       function()
         Snacks.picker.git_branches()
       end,
       desc = "Git Branches",
     },
     {
-      "<leader>Gl",
+      "<leader>gl",
       function()
         Snacks.picker.git_log()
       end,
       desc = "Git Log",
     },
     {
-      "<leader>GL",
+      "<leader>gL",
       function()
         Snacks.picker.git_log_line()
       end,
       desc = "Git Log Line",
     },
     {
-      "<leader>Gs",
+      "<leader>gs",
       function()
         Snacks.picker.git_status()
       end,
       desc = "Git Status",
     },
     {
-      "<leader>GS",
+      "<leader>gS",
       function()
         Snacks.picker.git_stash()
       end,
       desc = "Git Stash",
     },
     {
-      "<leader>Gdd",
+      "<leader>gdd",
       function()
         Snacks.picker.git_diff()
       end,
       desc = "Git Diff (Hunks)",
     },
     {
-      "<leader>Gdt",
+      "<leader>gdt",
       function()
         Snacks.toggle({
           name = "Diffview",
@@ -262,7 +262,7 @@ return {
       desc = "Toggle Diffview",
     },
     {
-      "<leader>Gf",
+      "<leader>gf",
       function()
         Snacks.picker.git_log_file()
       end,
@@ -519,7 +519,7 @@ return {
       desc = "Delete Buffer",
     },
     {
-      "<leader>GB",
+      "<leader>gB",
       function()
         Snacks.gitbrowse()
       end,
@@ -527,14 +527,15 @@ return {
       mode = { "n", "v" },
     },
     {
-      "<leader>gg",
+      "<leader>lgg",
       function()
         Snacks.lazygit()
       end,
       desc = "Lazygit",
     },
     {
-      "<leader>gf",
+      -- Lazygit: jump to currently open file
+      "<leader>lgf",
       function()
         local file = vim.api.nvim_buf_get_name(0)
         if file == "" then
