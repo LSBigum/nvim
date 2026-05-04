@@ -164,6 +164,13 @@ return {
         vim.cmd("DiffviewOpen " .. input .. " --imply-local")
       end, {})
     end,
+    keys = {
+      {
+        "<leader>mq",
+        "<cmd>DiffviewClose<cr>",
+        desc = "[Q]uit Diffview"
+      }
+    }
   },
   -- Git related plugins
   "tpope/vim-fugitive",
