@@ -79,11 +79,18 @@ return {
         desc = 'Debug: Step Out ([B]ack)',
       },
       {
-        '<leader>dq',
+        '<leader>dqq',
         function()
           require("dapui").close()
         end,
         desc = 'Debug: Close dap-ui',
+      },
+      {
+        '<leader>dqd',
+        function()
+          require("dap").disconnect()
+        end,
+        desc = 'Debug: Disconnect',
       },
       {
         '<leader>dd',
@@ -288,6 +295,47 @@ return {
         command = vim.fn.exepath("lldb-dap-20"),
       }
 
+      local function pick_process()
+        local lines = vim.fn.systemlist(
+          string.format([[ps -eo pid,comm,args --no-headers]])
+        )
+        if vim.v.shell_error ~= 0 or #lines == 0 then
+          vim.notify("Could not list processes", vim.log.levels.ERROR)
+          return nil
+        end
+
+        -- build choices: "1234  cmd  full args..."
+        local choices = {}
+        for _, l in ipairs(lines) do
+          -- normalize whitespace; ensure PID is first field
+          local pid, rest = l:match("^%s*(%d+)%s+(.+)$")
+          if pid and rest then
+            table.insert(choices, { pid = tonumber(pid), label = pid .. "  " .. rest })
+          end
+        end
+
+        return coroutine.create(function(co)
+          vim.ui.select(
+            vim.tbl_map(function(it) return it.label end, choices),
+            { prompt = "Select process (container):" },
+            function(item)
+              if not item then
+                coroutine.resume(co, nil)
+                return
+              end
+              -- map label back to pid
+              for _, it in ipairs(choices) do
+                if it.label == item then
+                  coroutine.resume(co, it.pid)
+                  return
+                end
+              end
+              coroutine.resume(co, nil)
+            end
+          )
+        end)
+      end
+
       -- Name your running container here
       local CONTAINER = "hawk20_compiler"
 
@@ -348,11 +396,21 @@ return {
       -- Path mapping: container -> host
       local source_map = {
         ["/home/nordbo_docker/catkin_ws"] = "/home/nordbo/catkin_ws_non_core",
+        -- ["/home/nordbo_docker/catkin_ws"] = "/home/nordbo/catkin_ws_test",
         -- add more entries if needed
       }
 
       dap.configurations.cpp = {
         -- Attach to a running C++ process *inside the container*
+        {
+          name = "Attach",
+          type = "lldb",
+          request = "attach",
+          pid = pick_process,  -- <— our custom picker
+          -- Optional quality-of-life:
+          stopOnEntry = false,
+          __sandbox = false,   -- keep lldb from sandboxing on some platforms
+        },
         {
           name = "Attach (inside container)",
           type = "lldb_docker",
