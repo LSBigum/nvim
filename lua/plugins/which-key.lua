@@ -36,6 +36,7 @@ return {
         { "<leader>u", group = "Toggle Features" },
         { "<leader>W", group = "Workspace" },
         { "<leader>x", group = "diagnostics/quickfix (Trouble)" },
+        { "<leader>y", group = "Yazi" },
         { "[",         group = "prev" },
         { "]",         group = "next" },
         { "g",         group = "goto" },
