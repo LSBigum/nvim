@@ -563,7 +563,7 @@ return {
       desc  = "Lazygit (current file)"
     },
     {
-      "<leader>un",
+      "<leader>uN",
       function()
         Snacks.notifier.hide()
       end,
