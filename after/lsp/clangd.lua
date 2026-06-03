@@ -134,10 +134,21 @@ local function find_host_compile_dir()
 
   -- Standard CMake build at project root
   do
-    local dir = prefer_compile_commands_dir(path_join(cwd, "build"))
-    if dir then
-      log("host compile_commands_dir=" .. dir)
-      return dir
+    local parent_dir = ""
+    -- Search parent directories for a build directory
+    local build_dir = vim.fn.finddir('build', vim.fn.expand("%:p") .. ";")
+    local project_marker = { ".git" }
+    local project_root = vim.fs.root(0, project_marker)
+    if (project_root and dir_exists(project_root)) then
+      local project_name = vim.fn.fnamemodify(vim.trim(project_root), ":t")
+      local project_build_dir = prefer_compile_commands_dir(path_join(build_dir, project_name))
+      if (project_build_dir and dir_exists(project_build_dir)) then
+        build_dir = project_build_dir
+      end
+    end
+    if build_dir and dir_exists(build_dir) then
+      log("host compile_commands_dir=" .. build_dir)
+      return build_dir
     end
   end
 
