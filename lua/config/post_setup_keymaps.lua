@@ -17,8 +17,21 @@ local function toggle_qf()
   end
   vim.cmd("copen")
 end
+
+local function qf_older()
+  vim.cmd("colder")
+  vim.cmd("copen")
+end
+
+local function qf_newer()
+  vim.cmd("cnewer")
+  vim.cmd("copen")
+end
+
 wk.add{"<leader>q", group = "[Q]uickfix/[Q]uit"}
 wk.add{"<leader>qf", toggle_qf, desc = "Toggle quickfix" }
+wk.add{"<leader>qp", qf_older, desc = "Previous quickfix list" }
+wk.add{"<leader>qn", qf_newer, desc = "Next quickfix list" }
 wk.add{"<leader>q<cr>", "<cmd>q<cr>", desc = "Quit" }
 wk.add{"<leader>qa<cr>", "<cmd>qa<cr>", desc = "Quit all" }
 
