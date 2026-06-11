@@ -110,7 +110,7 @@ end
 local dap = require("dap")
 dap.configurations.cpp = dap.configurations.cpp or {}
 
-table.insert(dap.configurations.cpp,
+table.insert(dap.configurations.cpp, 1,
 {
   name = "Debug Mimic",
   type = "lldb",
@@ -120,7 +120,7 @@ table.insert(dap.configurations.cpp,
   args = {},
   stopOnEntry = false,
 })
-table.insert(dap.configurations.cpp,
+table.insert(dap.configurations.cpp, 1,
 {
   name = "Compile and debug",
   type = "lldb",
