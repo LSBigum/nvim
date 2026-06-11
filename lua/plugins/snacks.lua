@@ -203,6 +203,32 @@ return {
       end,
       desc = "Recent",
     },
+    {
+      "<leader>ffa",
+      function()
+        Snacks.picker.lsp_workspace_symbols({
+          filter = {
+            default = { "Function", "Method", "Constructor" },
+          },
+          tree = false,
+          live = true,
+        })
+      end,
+      desc = "[A]ll functions in workspace"
+    },
+    {
+      "<leader>ffl",
+      function()
+        Snacks.picker.lsp_symbols({
+          filter = {
+            default = { "Function", "Method", "Constructor" },
+          },
+          tree = false,
+        })
+      end,
+      desc = "[L]ocal functions in buffer"
+    },
+
     -- git
     {
       "<leader>gb",

@@ -26,3 +26,5 @@ wk.add{ "<leader>w", group = "[W]rite..."}
 wk.add{ "<leader>w<cr>", "<cmd>w<cr>", desc = "Save file" }
 wk.add{ "<leader>wq", group = "[W]rite and quit..." }
 wk.add{ "<leader>wq<cr>", "<cmd>wq<cr>", desc = "Save file and quit" }
+
+wk.add{ "<leader>ff", group = "Find [f]unctions" }
