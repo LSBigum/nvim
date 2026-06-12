@@ -52,7 +52,7 @@ local cmake_flags = {
   git_toplevel_name(),
   "-S",
   root,
-  "-DCMAKE_BUILD_TYPE=debug",
+  "-DCMAKE_BUILD_TYPE=Debug",
   "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 }
 
