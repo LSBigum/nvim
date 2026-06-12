@@ -1,11 +1,13 @@
 local wk = require('which-key')
-wk.add{ "<leader>cr", group = "[R]elative" }
-wk.add{ "<leader>ca", group = "[A]bsolute" }
-wk.add{ "<leader>crf", require("config.utils").copyFilePathRelative,              desc = "Copy File Path (relative)" }
-wk.add{ "<leader>crl", require("config.utils").copyFilePathAndLineNumberRelative, desc = "Copy File Path and Line Number (relative)" }
-wk.add{ "<leader>caf", require("config.utils").copyFilePathAbsolute,              desc = "Copy File Path (absolute)" }
-wk.add{ "<leader>cal", require("config.utils").copyFilePathAndLineNumberAbsolute, desc = "Copy File Path and Line Number (absolute)" }
-wk.add{ "<leader>cg",  require("config.utils").copyFilePathAndLineNumberGit,      desc = "Copy Git File Path and Line Number" }
+local utils = require("config.utils")
+
+wk.add{ "<leader>cr", group = "[R]elative", mode = { "n", "v" } }
+wk.add{ "<leader>ca", group = "[A]bsolute", mode = { "n", "v" } }
+wk.add{ "<leader>crf", utils.copyFilePathRelative,              desc = "Copy File Path (relative)", mode = { "n", "v" } }
+wk.add{ "<leader>crl", utils.copyFilePathAndLineNumberRelative, desc = "Copy File Path and Line Number (relative)", mode = { "n", "v" } }
+wk.add{ "<leader>caf", utils.copyFilePathAbsolute,              desc = "Copy File Path (absolute)", mode = { "n", "v" } }
+wk.add{ "<leader>cal", utils.copyFilePathAndLineNumberAbsolute, desc = "Copy File Path and Line Number (absolute)", mode = { "n", "v" } }
+wk.add{ "<leader>cg",  utils.copyFilePathAndLineNumberGit,      desc = "Copy Git File Path and Line Number", mode = { "n", "v" } }
 
 -- Toggle quickfix
 local function toggle_qf()

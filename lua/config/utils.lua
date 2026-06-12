@@ -1,8 +1,42 @@
 local M = {}
 
+local function get_selected_line_range()
+  local mode = vim.fn.mode()
+  if not mode:match("[vV\22]") then
+    return nil
+  end
+
+  local start_line = vim.fn.line("v")
+  local end_line = vim.fn.line(".")
+  if start_line > end_line then
+    start_line, end_line = end_line, start_line
+  end
+
+  return start_line, end_line
+end
+
+local function get_current_line_range()
+  local start_line, end_line = get_selected_line_range()
+  if start_line then
+    return start_line, end_line
+  end
+
+  local current_line = vim.fn.line(".")
+  return current_line, current_line
+end
+
+local function format_path_with_line_range(path)
+  local start_line, end_line = get_current_line_range()
+  if start_line == end_line then
+    return path .. ":" .. start_line
+  end
+
+  return string.format("%s:%s-%s", path, start_line, end_line)
+end
+
 M.copyFilePathAndLineNumberGit = function()
   local current_file = vim.fn.expand("%:p")
-  local current_line = vim.fn.line(".")
+  local start_line, end_line = get_current_line_range()
   local is_git_repo = vim.fn.system("git rev-parse --is-inside-work-tree"):match("true")
 
   if is_git_repo then
@@ -20,7 +54,10 @@ M.copyFilePathAndLineNumberGit = function()
       current_file = current_file:sub(#repo_root + 2)
     end
 
-    local url = string.format("%s/blob/%s/%s#L%s", current_repo, current_branch, current_file, current_line)
+    local line_fragment = start_line == end_line
+      and ("#L" .. start_line)
+      or string.format("#L%s-L%s", start_line, end_line)
+    local url = string.format("%s/blob/%s/%s%s", current_repo, current_branch, current_file, line_fragment)
     vim.fn.setreg("+", url)
     print("Copied to clipboard: " .. url)
   else
@@ -36,9 +73,9 @@ end
 
 M.copyFilePathAndLineNumberRelative = function()
   local current_file = vim.fn.expand("%:.")
-  local current_line = vim.fn.line(".")
-  vim.fn.setreg("+", current_file .. ":" .. current_line)
-  print("Copied relative path with line number to clipboard: " .. current_file .. ":" .. current_line)
+  local value = format_path_with_line_range(current_file)
+  vim.fn.setreg("+", value)
+  print("Copied relative path with line number to clipboard: " .. value)
 end
 
 M.copyFilePathAbsolute = function()
@@ -50,10 +87,10 @@ end
 -- Copy the current file path and line number to the clipboard, use GitHub URL if in a Git repository
 M.copyFilePathAndLineNumberAbsolute = function()
   local current_file = vim.fn.expand("%:p")
-  local current_line = vim.fn.line(".")
+  local value = format_path_with_line_range(current_file)
 
-  vim.fn.setreg("+", current_file .. ":" .. current_line)
-  print("Copied absolute path with line number to clipboard: " .. current_file .. ":" .. current_line)
+  vim.fn.setreg("+", value)
+  print("Copied absolute path with line number to clipboard: " .. value)
 end
 
 function M.get_package_name()
