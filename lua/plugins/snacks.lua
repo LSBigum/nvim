@@ -224,15 +224,36 @@ return {
     {
       "<leader>ffa",
       function()
+        local root = vim.fn.getcwd()
+
+        root = vim.fs.normalize(root)
+
         Snacks.picker.lsp_workspace_symbols({
+          cwd = root,
+          tree = false,
+          live = true,
+
           filter = {
             default = { "Function", "Method", "Constructor" },
           },
-          tree = false,
-          live = true,
+
+          transform = function(item)
+            if not item.file then
+              return item
+            end
+
+            local file = vim.fs.normalize(item.file)
+
+            -- Only keep symbols physically inside this codebase.
+            if file ~= root and not vim.startswith(file, root .. "/") then
+              return false
+            end
+
+            return item
+          end,
         })
       end,
-      desc = "[A]ll functions in workspace"
+      desc = "Search [a]ll workspace functions",
     },
     {
       "<leader>ffl",
@@ -244,7 +265,7 @@ return {
           tree = false,
         })
       end,
-      desc = "[L]ocal functions in buffer"
+      desc = "Search [l]ocal functions in buffer"
     },
 
     -- git
