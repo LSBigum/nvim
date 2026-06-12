@@ -59,6 +59,10 @@ return {
             ["<M-H>"] = { "toggle_hidden", mode = { "n", "i" } },
             ["<M-I>"] = { "toggle_ignored", mode = { "n", "i" } },
             ["<M-R>"] = { "toggle_regex", mode = { "n" } },
+            ["<M-K>"] = { "focus_preview", mode = { "i", "n" } },
+            ["<M-J>"] = { "focus_list", mode = { "i", "n" } },
+            ["<C-M-k>"] = { "focus_preview", mode = { "i", "n" } },
+            ["<C-M-j>"] = { "focus_list", mode = { "i", "n" } },
             ["<C-u>"] = { "list_scroll_up", mode = { "n" } }, -- only normal mode
             ["<C-d>"] = { "list_scroll_down", mode = { "n" } }, -- only normal mode
           },
@@ -68,8 +72,22 @@ return {
           keys = {
             ["<M-H>"] = { "toggle_hidden", mode = { "n", "i" } },
             ["<M-I>"] = { "toggle_ignored", mode = { "n", "i" } },
+            ["<M-K>"] = { "focus_input", mode = { "i", "n" } },
+            ["<M-J>"] = { "focus_preview", mode = { "i", "n" } },
+            ["<C-M-k>"] = { "focus_input", mode = { "i", "n" } },
+            ["<C-M-j>"] = { "focus_preview", mode = { "i", "n" } },
           },
         },
+        preview = {
+          keys = {
+            ["<M-K>"] = { "focus_list", mode = { "i", "n" } },
+            ["<M-J>"] = { "focus_input", mode = { "i", "n" } },
+            ["<C-M-k>"] = { "focus_list", mode = { "i", "n" } },
+            ["<C-M-j>"] = { "focus_input", mode = { "i", "n" } },
+            ["<C-j>"] = { { "focus_list", "list_down" }, mode = { "i", "n" } },
+            ["<C-k>"] = { { "focus_list", "list_up" }, mode = { "i", "n" } },
+          }
+        }
       },
     },
     quickfile = { enabled = true },
