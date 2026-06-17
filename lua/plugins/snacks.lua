@@ -38,6 +38,7 @@ return {
       sources = {
         explorer = {
           hidden = true,
+          follow_file = false,
           win = {
             list = {
               wo = {
@@ -122,7 +123,7 @@ return {
     {
       "<leader>/",
       function()
-        Snacks.picker.grep({ cwd = vim.loop.cwd() })
+        Snacks.picker.grep({ cwd = vim.fn.getcwd() })
       end,
       desc = "Grep (cwd)",
     },
@@ -136,14 +137,14 @@ return {
     {
       "<leader>sg",
       function()
-        Snacks.picker.grep()
+        Snacks.picker.grep({ cwd = vim.fn.getcwd() })
       end,
       desc = "Grep",
     },
     {
       "<leader>sw",
       function()
-        Snacks.picker.grep_word()
+        Snacks.picker.grep_word({ cwd = vim.fn.getcwd() })
       end,
       desc = "Visual selection or word",
       mode = { "n", "x" },
@@ -168,6 +169,13 @@ return {
         Snacks.explorer()
       end,
       desc = "File Explorer",
+    },
+    {
+      "<leader>se",
+      function()
+        Snacks.explorer.reveal()
+      end,
+      desc = "Reveal Current File in Explorer",
     },
     -- find
     {
@@ -196,7 +204,7 @@ return {
     {
       "<leader>sf",
       function()
-        Snacks.picker.files({ cwd = vim.loop.cwd() })
+        Snacks.picker.files({ cwd = vim.fn.getcwd() })
       end,
       desc = "Search Files (cwd)",
     },
