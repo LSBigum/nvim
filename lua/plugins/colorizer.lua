@@ -1,4 +1,10 @@
 return {
     "catgoose/nvim-colorizer.lua",
-    opts = {}
+    opts = {
+        parsers = {
+            names = {
+                enable = false,
+            },
+        },
+    },
 }
