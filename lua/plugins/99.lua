@@ -2,6 +2,27 @@ return {
   "ThePrimeagen/99",
   config = function()
     local _99 = require("99")
+    local Window = require("99.window")
+
+    if not Window.__search_visual_insert_patched then
+      local capture_input = Window.capture_input
+      Window.capture_input = function(name, opts)
+        local win = capture_input(name, opts)
+
+        if name == "Search" or name == "Visual" then
+          vim.schedule(function()
+            if Window.valid(win) then
+              vim.api.nvim_set_current_win(win.win_id)
+              vim.cmd("startinsert")
+            end
+          end)
+        end
+
+        return win
+      end
+
+      Window.__search_visual_insert_patched = true
+    end
 
     local function select_model()
       local provider = _99.get_provider()
