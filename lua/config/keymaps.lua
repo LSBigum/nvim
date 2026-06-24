@@ -1,5 +1,21 @@
 local opts = { noremap = true, silent = true }
 
+local function move_statusline(offset)
+  local current = vim.fn.winnr()
+  local above = vim.fn.winnr("k")
+  local target = above ~= current and above or 0
+
+  vim.fn.win_move_statusline(target, offset)
+end
+
+local function move_separator(offset)
+  local current = vim.fn.winnr()
+  local left = vim.fn.winnr("h")
+  local target = left ~= current and left or 0
+
+  vim.fn.win_move_separator(target, offset)
+end
+
 -- Keep cursor centered when scrolling
 vim.keymap.set("n", "<C-d>", "<C-d>zz", opts)
 vim.keymap.set("n", "<C-u>", "<C-u>zz", opts)
@@ -45,11 +61,30 @@ vim.keymap.set("n", "X", ":keeppatterns substitute/\\s*\\%#\\s*/\\r/e <bar> norm
 vim.keymap.set("n", "<Esc>", ":nohlsearch<CR>", opts)
 
 -- Resizing: Ctrl + Arrow keys
-vim.keymap.set("n", "<C-Up>",    "<cmd>resize +2<cr>",          { desc = "Resize up" })
-vim.keymap.set("n", "<C-Down>",  "<cmd>resize -2<cr>",          { desc = "Resize down" })
-vim.keymap.set("n", "<C-Left>",  "<cmd>vertical resize -2<cr>", { desc = "Resize left" })
-vim.keymap.set("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Resize right" })
+vim.keymap.set("n", "<C-Up>", function()
+  move_statusline(-2)
+end, { desc = "Resize up" })
+vim.keymap.set("n", "<C-Down>", function()
+  move_statusline(2)
+end, { desc = "Resize down" })
+vim.keymap.set("n", "<C-Left>", function()
+  move_separator(-2)
+end, { desc = "Resize left" })
+vim.keymap.set("n", "<C-Right>", function()
+  move_separator(2)
+end, { desc = "Resize right" })
+vim.keymap.set("n", "<C-S-Up>", function()
+  move_statusline(-10)
+end, { desc = "Resize up" })
+vim.keymap.set("n", "<C-S-Down>", function()
+  move_statusline(10)
+end, { desc = "Resize down" })
+vim.keymap.set("n", "<C-S-Left>", function()
+  move_separator(-10)
+end, { desc = "Resize left" })
+vim.keymap.set("n", "<C-S-Right>", function()
+  move_separator(10)
+end, { desc = "Resize right" })
 
 -- Exit insert-mode when in a terminal with ESC.
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { noremap = true, silent = true })
-
