@@ -48,6 +48,19 @@ return {
       --     return vim.fs.find({ "selene.toml" }, { path = ctx.filename, upward = true })[1]
       --   end,
       -- },
+      selene = function()
+        local filename = vim.api.nvim_buf_get_name(0)
+        local search_root = filename ~= "" and vim.fs.dirname(filename) or vim.fn.getcwd()
+        local config = vim.fs.find({ "selene.toml" }, {
+          path = search_root,
+          upward = true,
+        })[1] or (vim.fn.stdpath("config") .. "/selene.toml")
+
+        return vim.tbl_deep_extend("force", {}, require("lint.linters.selene"), {
+          cwd = vim.fs.dirname(config),
+          args = { "--config", config, "--display-style", "json", "-" },
+        })
+      end,
     },
   },
   config = function(_, opts)
