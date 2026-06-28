@@ -143,19 +143,25 @@ return {
     -- so just prepare for it now
     vim.keymap.set("v", "<leader>av", function()
       _99.visual()
-    end)
+    end, {
+      desc = "99 Visual Request",
+    })
 
     --- if you have a request you dont want to make any changes, just cancel it
     vim.keymap.set("n", "<leader>ax", function()
       _99.stop_all_requests()
-    end)
+    end, {
+      desc = "99 Cancel Requests",
+    })
 
     vim.keymap.set("n", "<leader>as", function()
       _99.search()
-    end)
+    end, {
+      desc = "99 Search",
+    })
 
     vim.keymap.set("n", "<leader>am", select_model, {
-      desc = "99 select model",
+      desc = "99 Select Model",
     })
   end,
 }

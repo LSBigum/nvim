@@ -53,12 +53,17 @@ return {
 
         on_attach = function(bufnr)
           local gitsigns = require('gitsigns')
+          local wk = require("which-key")
 
           local function map(mode, l, r, opts)
             opts = opts or {}
             opts.buffer = bufnr
             vim.keymap.set(mode, l, r, opts)
           end
+
+          wk.add({
+            { '<leader>h', group = 'Hunk', buffer = bufnr },
+          })
 
           -- Navigation
           map('n', ']]', function()
@@ -168,7 +173,7 @@ return {
       {
         "<leader>mq",
         "<cmd>DiffviewClose<cr>",
-        desc = "[Q]uit Diffview"
+        desc = "Close Diffview"
       }
     }
   },

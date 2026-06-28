@@ -64,6 +64,8 @@ return {
             ["<M-J>"] = { "focus_list", mode = { "i", "n" } },
             ["<C-M-k>"] = { "focus_preview", mode = { "i", "n" } },
             ["<C-M-j>"] = { "focus_list", mode = { "i", "n" } },
+            ["<C-M-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
+            ["<C-M-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
             ["<C-u>"] = { "list_scroll_up", mode = { "n" } }, -- only normal mode
             ["<C-d>"] = { "list_scroll_down", mode = { "n" } }, -- only normal mode
           },
@@ -77,6 +79,8 @@ return {
             ["<M-J>"] = { "focus_preview", mode = { "i", "n" } },
             ["<C-M-k>"] = { "focus_input", mode = { "i", "n" } },
             ["<C-M-j>"] = { "focus_preview", mode = { "i", "n" } },
+            ["<C-M-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
+            ["<C-M-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
           },
         },
         preview = {
@@ -135,13 +139,6 @@ return {
       desc = "Grep Open Buffers",
     },
     {
-      "<leader>sg",
-      function()
-        Snacks.picker.grep({ cwd = vim.fn.getcwd() })
-      end,
-      desc = "Grep",
-    },
-    {
       "<leader>sw",
       function()
         Snacks.picker.grep_word({ cwd = vim.fn.getcwd() })
@@ -155,13 +152,6 @@ return {
         Snacks.picker.command_history()
       end,
       desc = "Command History",
-    },
-    {
-      "<leader>n",
-      function()
-        Snacks.picker.notifications()
-      end,
-      desc = "Notification History",
     },
     {
       "<leader>e",
@@ -200,13 +190,6 @@ return {
         Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
       end,
       desc = "Find Config File",
-    },
-    {
-      "<leader>sf",
-      function()
-        Snacks.picker.files({ cwd = vim.fn.getcwd() })
-      end,
-      desc = "Search Files (cwd)",
     },
     {
       "<leader>fg",
@@ -335,19 +318,11 @@ return {
       desc = "Toggle Diffview",
     },
     {
-      "<leader>gf",
+      "<leader>gF",
       function()
         Snacks.picker.git_log_file()
       end,
       desc = "Git Log File",
-    },
-    -- Grep
-    {
-      "<leader>sb",
-      function()
-        Snacks.picker.lines()
-      end,
-      desc = "Buffer Lines",
     },
     -- search
     {
@@ -600,7 +575,7 @@ return {
       mode = { "n", "v" },
     },
     {
-      "<leader>lgg",
+      "<leader>gg",
       function()
         Snacks.lazygit()
       end,
@@ -608,7 +583,7 @@ return {
     },
     {
       -- Lazygit: jump to currently open file
-      "<leader>lgf",
+      "<leader>gf",
       function()
         local file = vim.api.nvim_buf_get_name(0)
         if file == "" then
