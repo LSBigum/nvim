@@ -3,6 +3,26 @@ local overseer = require("overseer")
 ---- Base settings ----
 local compiler = "cmake"
 local wrapper_root = vim.fs.normalize(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h"))
+local project = {
+  source_dir = "mimic",
+  build_dir = "build",
+  binary = "ui/mimic",
+  build_type = "Debug",
+  name = "Mimic",
+  urgent_component = "project.mark_urgent_on_complete",
+  build_args = { "--", "-j20" },
+  cmake_args = {
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+  },
+}
+
+local function debug_name()
+  return "Debug " .. project.name
+end
+
+local function compile_and_debug_name()
+  return "Compile and debug " .. project.name
+end
 
 local function current_path()
   local file = vim.api.nvim_buf_get_name(0)
@@ -28,7 +48,7 @@ local function get_git_root(path)
 end
 
 local function get_worktree_root()
-  return get_git_root() or get_git_root(wrapper_root .. "/mimic") or wrapper_root
+  return get_git_root() or get_git_root(wrapper_root .. "/" .. project.source_dir) or wrapper_root
 end
 
 local function git_toplevel_name()
@@ -36,11 +56,11 @@ local function git_toplevel_name()
 end
 
 local function get_source_root()
-  return vim.fs.normalize(get_worktree_root() .. "/mimic")
+  return vim.fs.normalize(get_worktree_root() .. "/" .. project.source_dir)
 end
 
 local function get_build_root()
-  return vim.fs.normalize(wrapper_root .. "/build")
+  return vim.fs.normalize(wrapper_root .. "/" .. project.build_dir)
 end
 
 local function get_build_cwd()
@@ -67,7 +87,7 @@ local function get_current_window_id()
   return vim.trim(result.stdout)
 end
 
-package.preload["overseer.component.mimic.mark_urgent_on_complete"] = function()
+package.preload["overseer.component." .. project.urgent_component] = function()
   return {
     desc = "Mark the terminal window urgent when task completes",
     editable = false,
@@ -96,12 +116,10 @@ end
 
 ---- Compiler flags ----
 local function compiler_flags()
-  return {
+  return vim.list_extend({
     "--build",
     git_toplevel_name(),
-    "--",
-    "-j20",
-  }
+  }, project.build_args)
 end
 
 overseer.register_template({
@@ -118,7 +136,7 @@ overseer.register_template({
       cwd = build_cwd,
       components = {
         "default",
-        "mimic.mark_urgent_on_complete",
+        project.urgent_component,
         { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = build_cwd },
       },
     }
@@ -126,14 +144,13 @@ overseer.register_template({
 })
 
 local function cmake_flags()
-  return {
+  return vim.list_extend({
     "-B",
     git_toplevel_name(),
     "-S",
     get_source_root(),
-    "-DCMAKE_BUILD_TYPE=Debug",
-    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-  }
+    "-DCMAKE_BUILD_TYPE=" .. project.build_type,
+  }, project.cmake_args)
 end
 
 overseer.register_template({
@@ -151,7 +168,7 @@ overseer.register_template({
       cwd = build_cwd,
       components = {
         "default",
-        "mimic.mark_urgent_on_complete",
+        project.urgent_component,
         { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = build_cwd },
       },
     }
@@ -165,21 +182,21 @@ overseer.register_template({
     local build_cwd = get_build_cwd()
 
     return {
-      cmd = "./ui/mimic",
+      cmd = "./" .. project.binary,
       cwd = build_cwd,
       components = {
         "default",
-        "mimic.mark_urgent_on_complete",
+        project.urgent_component,
         { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = build_cwd },
       },
     }
   end
 })
 
-local function project_binary_mimic()
+local function project_binary()
   local name = git_toplevel_name()
 
-  return vim.fs.normalize(get_build_root() .. "/" .. name .. "/ui/mimic")
+  return vim.fs.normalize(get_build_root() .. "/" .. name .. "/" .. project.binary)
 end
 
 
@@ -188,20 +205,20 @@ dap.configurations.cpp = dap.configurations.cpp or {}
 
 table.insert(dap.configurations.cpp, 1,
 {
-  name = "Debug Mimic",
+  name = debug_name(),
   type = "lldb",
   request = "launch",
-  program = project_binary_mimic,
+  program = project_binary,
   cwd = get_worktree_root,
   args = {},
   stopOnEntry = false,
 })
 table.insert(dap.configurations.cpp, 1,
 {
-  name = "Compile and debug",
+  name = compile_and_debug_name(),
   type = "lldb",
   request = "launch",
-  program = project_binary_mimic,
+  program = project_binary,
   cwd = get_worktree_root,
   args = {},
   stopOnEntry = false,
