@@ -1,5 +1,13 @@
 local api = vim.api
 
+-- Trust project-local configuration after it is explicitly saved.
+api.nvim_create_autocmd("BufWritePost", {
+    pattern = "*.nvim.lua",
+    callback = function(event)
+        vim.secure.trust({ action = "allow", bufnr = event.buf })
+    end,
+})
+
 -- don't auto comment new line
 api.nvim_create_autocmd("BufEnter", { command = [[set formatoptions-=cro]] })
 
