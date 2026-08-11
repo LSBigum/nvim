@@ -56,68 +56,43 @@ local function prefer_compile_commands_dir(dir)
   return dir -- still helpful even if the json is generated later
 end
 
-local function find_host_compile_dir()
-  -- First try catkin workspaces by locating the nearest package.xml and
-  -- using its parent directory name as the package name.
+-- Known catkin workspace directory names, checked in order. Each is matched
+-- against cwd; the nearest package.xml's parent dir name becomes the package
+-- name used to locate that workspace's per-package build dir.
+local CATKIN_WORKSPACES = { "catkin_ws_20", "catkin_ws_non_core", "catkin_ws_core", "catkin_ws_test" }
 
-  do
-    local ws = cwd:match("(.+/catkin_ws_20)")
+local function find_catkin_compile_dir()
+  for _, name in ipairs(CATKIN_WORKSPACES) do
+    local ws = cwd:match("(.+/" .. name .. ")")
     if ws then
       local pkg_name = find_nearest_package_name(cwd)
       if pkg_name then
-        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
+        local build_dir = path_join(path_join(ws, "build"), string.lower(pkg_name))
+        local dir = prefer_compile_commands_dir(build_dir)
         if dir then
           log("host compile_commands_dir=" .. dir)
           return dir
         end
-        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
+        log("Could not find " .. build_dir)
       end
+      return nil
+    end
+  end
+  return nil
+end
+
+local function find_host_compile_dir(mimic_profile)
+  if mimic_profile then
+    local dir = prefer_compile_commands_dir(mimic_profile.build_dir)
+    if dir then
+      log("Mimic compile_commands_dir=" .. dir)
+      return dir
     end
   end
 
-  do
-    local ws = cwd:match("(.+/catkin_ws_non_core)")
-    if ws then
-      local pkg_name = find_nearest_package_name(cwd)
-      if pkg_name then
-        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
-        if dir then
-          log("host compile_commands_dir=" .. dir)
-          return dir
-        end
-        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
-      end
-    end
-  end
-
-  do
-    local ws = cwd:match("(.+/catkin_ws_core)")
-    if ws then
-      local pkg_name = find_nearest_package_name(cwd)
-      if pkg_name then
-        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
-        if dir then
-          log("host compile_commands_dir=" .. dir)
-          return dir
-        end
-        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
-      end
-    end
-  end
-
-  do
-    local ws = cwd:match("(.+/catkin_ws_test)")
-    if ws then
-      local pkg_name = find_nearest_package_name(cwd)
-      if pkg_name then
-        local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), string.lower(pkg_name)))
-        if dir then
-          log("host compile_commands_dir=" .. dir)
-          return dir
-        end
-        log("Could not find " .. path_join(path_join(ws, "build"), pkg_name))
-      end
-    end
+  local catkin_dir = find_catkin_compile_dir()
+  if catkin_dir then
+    return catkin_dir
   end
 
   do
@@ -134,7 +109,6 @@ local function find_host_compile_dir()
 
   -- Standard CMake build at project root
   do
-    local parent_dir = ""
     -- Search parent directories for a build directory
     local build_dir = vim.fn.finddir('build', vim.fn.expand("%:p") .. ";")
     local project_marker = { ".git" }
@@ -158,7 +132,8 @@ local function find_host_compile_dir()
 end
 -- command assembly -----------------------------------------------------------
 local function build_clangd_cmd()
-  local host_cc_dir = find_host_compile_dir()
+  local mimic_profile = utils_docker.get_mimic_profile(cwd)
+  local host_cc_dir = find_host_compile_dir(mimic_profile)
   local base_opts = {
     "--background-index",
     "--clang-tidy",
@@ -170,6 +145,14 @@ local function build_clangd_cmd()
     "--query-driver=/usr/bin/c++",
     -- "--log=verbose",
   }
+
+  if mimic_profile then
+    local launcher = path_join(mimic_profile.root, "docker/mimic-clangd.sh")
+    local cmd = { launcher }
+    vim.list_extend(cmd, base_opts)
+    log("using Mimic Docker launcher: " .. table.concat(cmd, " "))
+    return cmd
+  end
 
   local profile = utils_docker.detect_profile(cwd)
   if profile and utils_docker.is_container_running(profile.container) then
@@ -198,36 +181,13 @@ local function build_clangd_cmd()
   end
 end
 
--- root dir -------------------------------------------------------------------
-
--- local function clangd_root_dir(bufnr, cb)
---   if cwd:match("(.+/catkin_ws_20)/src/[^/]+") then
---     return cb(cwd)
---   end
---   local fname = vim.api.nvim_buf_get_name(bufnr)
---   local contains_build_dir = vim.fs.find("build", { path = fname, upward = true })[1]
---   if contains_build_dir then
---     log("root_dir = contains_build_dir: " .. vim.fs.dirname(contains_build_dir))
---   return cb(vim.fs.dirname(contains_build_dir))
---   end
---   local git_dir = vim.fs.find(".git", { path = fname, upward = true })[1]
---   if git_dir then
---     log("root_dir = git_dir: " .. vim.fs.dirname(git_dir))
---     return cb(vim.fs.dirname(git_dir))
---   end
---   return cb(cwd)
--- end
-
 -- public LSP config ----------------------------------------------------------
 M.config = {
   cmd = build_clangd_cmd(),
   filetypes = { "c", "cpp" },
-  -- root_dir = clangd_root_dir,
   root_markers = { "compile_commands.json", ".clang", "package.xml", ".git" },
   init_options = { clangdFileStatus = true },
   settings = {},
 }
--- log("using root_dir: " .. table.concat(M.config))
 
 return M.config
-
