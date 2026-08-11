@@ -131,19 +131,20 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
         local wk = require("which-key")
         wk.add({
-            { "<leader>la", vim.lsp.buf.code_action,                               desc = "Code Action" },
-            { "<leader>lA", vim.lsp.buf.range_code_action,                         desc = "Range Code Actions" },
-            { "<leader>ls", vim.lsp.buf.signature_help,                            desc = "Display Signature Information" },
-            { "<leader>lr", vim.lsp.buf.rename,                                    desc = "Rename all references" },
+            { "<leader>la", vim.lsp.buf.code_action,                               desc = "Code Action", buffer = event.buf },
+            { "<leader>lA", vim.lsp.buf.range_code_action,                         desc = "Range Code Actions", buffer = event.buf },
+            { "<leader>ls", vim.lsp.buf.signature_help,                            desc = "Display Signature Information", buffer = event.buf },
+            { "<leader>lr", vim.lsp.buf.rename,                                    desc = "Rename All References", buffer = event.buf },
             -- { "<leader>lf", vim.lsp.buf.format,                                    desc = "Format" },
-            { "<leader>Wa", vim.lsp.buf.add_workspace_folder,                      desc = "Workspace Add Folder" },
-            { "<leader>Wr", vim.lsp.buf.remove_workspace_folder,                   desc = "Workspace Remove Folder" },
+            { "<leader>Wa", vim.lsp.buf.add_workspace_folder,                      desc = "Workspace Add Folder", buffer = event.buf },
+            { "<leader>Wr", vim.lsp.buf.remove_workspace_folder,                   desc = "Workspace Remove Folder", buffer = event.buf },
             {
                 "<leader>Wl",
                 function()
                     print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
                 end,
                 desc = "Workspace List Folders",
+                buffer = event.buf,
             },
         })
 
