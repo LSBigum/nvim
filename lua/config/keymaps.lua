@@ -60,6 +60,8 @@ vim.keymap.set("n", "X", ":keeppatterns substitute/\\s*\\%#\\s*/\\r/e <bar> norm
 
 vim.keymap.set("n", "<Esc>", ":nohlsearch<CR>", opts)
 
+vim.keymap.set("n", "<leader>rr", "<cmd>restart<CR>", { desc = "Restart Neovim" })
+
 -- Resizing: Ctrl + Arrow keys
 vim.keymap.set("n", "<C-Up>", function()
   move_statusline(-2)
