@@ -1,3 +1,86 @@
+local function explorer_format(item, picker)
+  if not (picker.input and picker.input.filter.meta.searching) then
+    return Snacks.picker.format.file(item, picker)
+  end
+
+  local formatters = picker.opts.formatters
+  local proxy = setmetatable({
+    opts = setmetatable({
+      formatters = setmetatable({
+        file = vim.tbl_extend("force", {}, formatters.file, {
+          filename_first = true,
+          filename_only = false,
+        }),
+      }, { __index = formatters }),
+    }, { __index = picker.opts }),
+  }, { __index = picker })
+
+  return Snacks.picker.format.file(item, proxy)
+end
+
+local function capture_dapui_stacks_widths()
+  local ok, windows = pcall(require, "dapui.windows")
+  if not ok then
+    return nil
+  end
+
+  local widths = {}
+
+  for _, layout in ipairs(windows.layouts or {}) do
+    local is_stacks_layout = false
+    for _, win_state in ipairs(layout.win_states or {}) do
+      if win_state.id == "stacks" then
+        is_stacks_layout = true
+        break
+      end
+    end
+
+    if is_stacks_layout and layout.layout_type == "vertical" and layout.is_open and layout:is_open() then
+      local ok_width, width = pcall(vim.api.nvim_win_get_width, layout.opened_wins[1])
+      if ok_width and width > 0 then
+        widths[layout] = width
+      end
+    end
+  end
+
+  return next(widths) and widths or nil
+end
+
+local function restore_dapui_stacks_widths(widths)
+  if not widths then
+    return
+  end
+
+  for layout, width in pairs(widths) do
+    if layout.is_open and layout:is_open() then
+      layout.area_state.size = width
+      layout:resize()
+    end
+  end
+end
+
+local function explorer_is_open()
+  return #Snacks.picker.get({ source = "explorer" }) > 0
+end
+
+local function make_explorer_on_show(widths, after_show)
+  if not widths and not after_show then
+    return nil
+  end
+
+  return function(picker)
+    if after_show then
+      after_show(picker)
+    end
+
+    if widths then
+      vim.schedule(function()
+        restore_dapui_stacks_widths(widths)
+      end)
+    end
+  end
+end
+
 return {
   "folke/snacks.nvim",
   priority = 1000,
@@ -39,6 +122,7 @@ return {
         explorer = {
           hidden = true,
           follow_file = false,
+          format = explorer_format,
           win = {
             list = {
               wo = {
@@ -156,14 +240,26 @@ return {
     {
       "<leader>e",
       function()
-        Snacks.explorer()
+        local widths = explorer_is_open() and nil or capture_dapui_stacks_widths()
+        local on_show = make_explorer_on_show(widths)
+        Snacks.explorer(on_show and { on_show = on_show } or nil)
       end,
       desc = "File Explorer",
     },
     {
       "<leader>se",
       function()
-        Snacks.explorer.reveal()
+        if explorer_is_open() then
+          Snacks.explorer.reveal()
+          return
+        end
+
+        local widths = capture_dapui_stacks_widths()
+        Snacks.explorer({
+          on_show = make_explorer_on_show(widths, function()
+            Snacks.explorer.reveal()
+          end),
+        })
       end,
       desc = "Reveal Current File in Explorer",
     },
