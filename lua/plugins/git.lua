@@ -133,49 +133,48 @@ return {
       })
     end,
   },
-  -- {
-  --   "sindrets/diffview.nvim",
-  --   event = "VeryLazy",
-  --   cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles" },
-  -- },
   {
-    "sindrets/diffview.nvim",
+    "dlyongemallo/diffview-plus.nvim",
     opts = {
-      enhanced_diff_hl = false,
-      file_panel = {
-      win_config = function()
-        return {
-          type = "split",
-          position = "bottom",
-          height = 12,
-        }
-      end,
-      },
+      enhanced_diff_hl = true,
+      use_icons = true,
       view = {
-        default = {
-          layout = "diff2_vertical",
+        default = { layout = "diff2_horizontal" },
+        merge_tool = { layout = "diff3_horizontal" },
+        cycle_layouts = {
+          default = { "diff2_horizontal", "diff1_inline" },
         },
+        inline = { deletion_highlight = "full_width" },
       },
+      file_panel = {
+        listing_style = "tree",
+        win_config = { position = "left", width = 35 }, -- Use "auto" to fit content
+      },
+      hooks = {},   -- See :h diffview-config-hooks
+      keymaps = {}, -- See :h diffview-config-keymaps
     },
-    config = function(_, opts)
-      require("diffview").setup(opts)
-
-      vim.api.nvim_create_user_command("DiffviewOpenPrompt", function()
-        local default = "main...HEAD"
-        local input = vim.fn.input("Diffview range/rev: ", default)
-        if input == nil or input == "" then
-          return
-        end
-        vim.cmd("DiffviewOpen " .. input .. " --imply-local")
-      end, {})
+    init = function()
+      -- enhanced_diff_hl links deletions to DiffviewDiffDeleteDim, which defaults
+      -- to Comment, so deleted lines in diff1_inline look like normal code.
+      -- diffview only sets that link as a default, so defining it here wins.
+      local function link_delete_dim()
+        vim.api.nvim_set_hl(0, "DiffviewDiffDeleteDim", { link = "DiffDelete" })
+      end
+      link_delete_dim()
+      vim.api.nvim_create_autocmd("ColorScheme", { callback = link_delete_dim })
     end,
     keys = {
       {
         "<leader>mq",
         "<cmd>DiffviewClose<cr>",
         desc = "Close Diffview"
-      }
-    }
+      },
+      {
+        "<leader>mu",
+        function() require("diffview.actions").cycle_layout() end,
+        desc = "Toggle Diffview split/unified layout"
+      },
+    },
   },
   -- Git related plugins
   "tpope/vim-fugitive",
