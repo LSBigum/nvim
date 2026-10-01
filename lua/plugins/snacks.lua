@@ -254,10 +254,14 @@ return {
           return
         end
 
+        -- Capture the file before opening: inside on_show the current buffer is the explorer's
+        local file = vim.api.nvim_buf_get_name(0)
         local widths = capture_dapui_stacks_widths()
         Snacks.explorer({
           on_show = make_explorer_on_show(widths, function()
-            Snacks.explorer.reveal()
+            if file ~= "" then
+              Snacks.explorer.reveal({ file = file })
+            end
           end),
         })
       end,
