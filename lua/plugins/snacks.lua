@@ -671,42 +671,6 @@ return {
       mode = { "n", "v" },
     },
     {
-      "<leader>gg",
-      function()
-        Snacks.lazygit()
-      end,
-      desc = "Lazygit",
-    },
-    {
-      -- Lazygit: jump to currently open file
-      "<leader>gf",
-      function()
-        local file = vim.api.nvim_buf_get_name(0)
-        if file == "" then
-          return
-        end
-
-        -- open normal lazygit view
-        Snacks.lazygit()
-
-        -- after the terminal is up, send keys:
-        -- 2 = focus Files panel (common default), / = filter, then the filename, then <CR>
-        vim.defer_fn(function()
-          local chan = vim.b.terminal_job_id
-          if not chan then
-            return
-          end
-
-          -- use basename so it matches quickly; change to a repo-relative path if you prefer
-          local needle = vim.fn.fnamemodify(file, ":t")
-
-          -- "2" to go to Files panel, then filter
-          vim.fn.chansend(chan, "2/" .. needle .. "\r")
-        end, 60)
-      end,
-      desc  = "Lazygit (current file)"
-    },
-    {
       "<leader>uN",
       function()
         Snacks.notifier.hide()
