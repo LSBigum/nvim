@@ -10,6 +10,10 @@ return {
       separator = "󱦰  ", -- symbol used between a key and it's label
       group = "󰹍 ", -- symbol prepended to a group
     },
+    keys = {
+      scroll_down = "<PageDown>",
+      scroll_up = "<PageUp>",
+    },
     plugins = {
       spelling = {
         enabled = false,
