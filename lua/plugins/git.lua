@@ -153,26 +153,48 @@ return {
       hooks = {},   -- See :h diffview-config-hooks
       keymaps = {}, -- See :h diffview-config-keymaps
     },
-    init = function()
-      -- enhanced_diff_hl links deletions to DiffviewDiffDeleteDim, which defaults
-      -- to Comment, so deleted lines in diff1_inline look like normal code.
-      -- diffview only sets that link as a default, so defining it here wins.
-      local function link_delete_dim()
+    config = function(_, opts)
+      require("diffview").setup(opts)
+
+      -- Both overrides run after diffview's own highlight setup, and the
+      -- autocmd is registered after diffview's ColorScheme autocmd, so they
+      -- win on every colorscheme reload.
+      local function override_highlights()
+        -- enhanced_diff_hl links deletions to DiffviewDiffDeleteDim, which
+        -- defaults to Comment, so deleted lines in diff1_inline look like
+        -- normal code.
         vim.api.nvim_set_hl(0, "DiffviewDiffDeleteDim", { link = "DiffDelete" })
+
+        -- diff1_inline marks changed characters with DiffText's background but
+        -- drops its foreground so syntax colours show through. gruvbox-material's
+        -- DiffText is dark text on bright cyan (#80aa9e), so syntax-coloured
+        -- text on that background is unreadable. Use a dark teal that still
+        -- stands out from the DiffChange line background.
+        vim.api.nvim_set_hl(0, "DiffviewDiffTextInline", { bg = "#22555e" })
       end
-      link_delete_dim()
-      vim.api.nvim_create_autocmd("ColorScheme", { callback = link_delete_dim })
+      override_highlights()
+      vim.api.nvim_create_autocmd("ColorScheme", { callback = override_highlights })
     end,
     keys = {
       {
-        "<leader>mq",
+        "<leader>gdq",
         "<cmd>DiffviewClose<cr>",
         desc = "Close Diffview"
       },
       {
-        "<leader>mu",
+        "<leader>gdu",
         function() require("diffview.actions").cycle_layout() end,
         desc = "Toggle Diffview split/unified layout"
+      },
+      {
+        "<leader>gdt",
+        "<cmd>DiffviewToggle<cr>",
+        desc = "Toggle Diffview"
+      },
+      {
+        "<leader>gdr",
+        "<cmd>DiffviewRefresh<cr>",
+        desc = "Refresh files in Diffview"
       },
     },
   },
