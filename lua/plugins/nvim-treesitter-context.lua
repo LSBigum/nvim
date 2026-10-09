@@ -17,8 +17,4 @@ return {
       trim_scope = "inner",
     },
   },
-  {
-    "nvim-treesitter/playground",
-    config = function() end,
-  },
 }
