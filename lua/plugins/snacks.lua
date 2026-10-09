@@ -63,6 +63,30 @@ local function explorer_is_open()
   return #Snacks.picker.get({ source = "explorer" }) > 0
 end
 
+local function is_file_buffer(buf)
+  return vim.bo[buf].buftype == "" and vim.api.nvim_buf_get_name(buf) ~= ""
+end
+
+-- From the explorer (or another non-file window) the current buffer has no file,
+-- so fall back to the only file shown in a window of this tab when that choice is unambiguous
+local function file_to_reveal()
+  if is_file_buffer(0) then
+    return vim.api.nvim_buf_get_name(0)
+  end
+
+  -- Keyed by buffer so a file split across two windows counts once
+  local files = {}
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if is_file_buffer(buf) then
+      files[buf] = vim.api.nvim_buf_get_name(buf)
+    end
+  end
+
+  local buf, file = next(files)
+  return buf and next(files, buf) == nil and file or nil
+end
+
 local function make_explorer_on_show(widths, after_show)
   if not widths and not after_show then
     return nil
@@ -249,17 +273,22 @@ return {
     {
       "<leader>se",
       function()
+        -- Capture the file before opening: inside on_show the current buffer is the explorer's
+        local file = file_to_reveal()
+
         if explorer_is_open() then
-          Snacks.explorer.reveal()
+          if file then
+            Snacks.explorer.reveal({ file = file })
+          else
+            Snacks.notify.warn("No single file buffer to reveal")
+          end
           return
         end
 
-        -- Capture the file before opening: inside on_show the current buffer is the explorer's
-        local file = vim.api.nvim_buf_get_name(0)
         local widths = capture_dapui_stacks_widths()
         Snacks.explorer({
           on_show = make_explorer_on_show(widths, function()
-            if file ~= "" then
+            if file then
               Snacks.explorer.reveal({ file = file })
             end
           end),
