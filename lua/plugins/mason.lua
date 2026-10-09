@@ -59,6 +59,9 @@ return {
                     "selene", -- lua
                     "shellcheck", -- bash linter
                     "stylua", -- lua
+                    -- nvim-treesitter main branch compiles parsers with it.
+                    -- Pinned: release binaries from 0.26.1 on need glibc 2.39, Ubuntu 22.04 has 2.35.
+                    { "tree-sitter-cli", version = "v0.25.10" },
                     "yaml-language-server",
                     "yamllint",
                     "yamlfix",

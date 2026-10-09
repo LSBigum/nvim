@@ -74,6 +74,8 @@ return {
         "nvim-treesitter/nvim-treesitter",
         branch = "main",
         lazy = false,
+        -- mason.setup() puts the Mason tree-sitter CLI on PATH, which ts.install() below needs
+        dependencies = { "mason-org/mason.nvim" },
         build = ":TSUpdate",
         config = function()
             local ts = require("nvim-treesitter")
