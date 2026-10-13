@@ -1,67 +1,3 @@
--- -- Put this somewhere in your config (e.g. lua/git_review.lua)
--- local function qf_files_changed_since_main()
---   local files = vim.fn.systemlist({ "git", "diff", "--name-only", "main...HEAD" })
---   local items = {}
---   for _, f in ipairs(files) do
---     if f ~= "" then
---       table.insert(items, { filename = f, lnum = 1, col = 1, text = "changed vs main" })
---     end
---   end
---   vim.fn.setqflist({}, "r", { title = "Files changed since main", items = items })
---   vim.cmd("copen")
--- end
---
--- vim.api.nvim_create_user_command("ChangedSinceMain", qf_files_changed_since_main, {})
---
--- -- In the quickfix window: Enter opens Diffview, with working tree on the right (LSP-friendly).
--- vim.api.nvim_create_autocmd("FileType", {
---   pattern = "qf",
---   callback = function(ev)
---     vim.keymap.set("n", "<CR>", function()
---       local qf = vim.fn.getqflist({ idx = 0, items = 0 })
---       local item = vim.fn.getqflist()[qf.idx]
---       if not item or not item.filename then return end
---
---       vim.cmd("cclose")
---       -- Open diffview for the whole comparison; then jump to the file.
---       -- (Diffview will show working tree on the right because of --imply-local.)
---       vim.cmd("DiffviewOpen main...HEAD --imply-local")
---       vim.cmd("edit " .. vim.fn.fnameescape(item.filename))
---     end, { buffer = ev.buf, silent = true })
---   end,
--- })
---
-local function changed_since_main()
-  local files = vim.fn.systemlist({ "git", "diff", "--name-only", "main...HEAD" })
-
-  local items = {}
-  for _, f in ipairs(files) do
-    if f ~= "" then
-      -- make sure quickfix entries resolve to real buffers
-      local bufnr = vim.fn.bufadd(f) -- creates buffer entry without opening
-      table.insert(items, {
-        bufnr = bufnr,
-        lnum = 1,
-        col = 1,
-        text = "changed vs main",
-        valid = 1,
-      })
-    end
-  end
-
-  vim.fn.setqflist({}, "r", { title = "Changed since main", items = items })
-
-  -- show with Trouble if available, else native quickfix
-  local ok = pcall(require, "trouble")
-  if ok then
-    vim.cmd("Trouble qflist open")
-  else
-    vim.cmd("copen")
-  end
-end
-
-vim.api.nvim_create_user_command("ChangedSinceMain", changed_since_main, {})
-
 local function qf_from_git_range(range)
   -- Get changed files for the range
   local files = vim.fn.systemlist({ "git", "diff", "--name-only", range })
@@ -89,13 +25,29 @@ local function qf_from_git_range(range)
   vim.fn.setqflist({}, "r", { title = "Changed files: " .. range, items = items })
 end
 
-local function diffview_open_prompt_with_qf()
-  local default = "main...HEAD"
-  local range = vim.fn.input("Diffview range/rev: ", default)
-  if not range or range == "" then
-    return
+-- origin/HEAD is set at clone time; repos cloned before the remote's default
+-- branch changed may need `git remote set-head origin --auto`
+local function trunk_branch()
+  local result = vim.system({ "git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD" }, { text = true }):wait()
+  if result.code == 0 then
+    return vim.trim(result.stdout)
   end
+  for _, branch in ipairs({ "main", "master" }) do
+    if vim.system({ "git", "rev-parse", "--verify", "--quiet", branch }):wait().code == 0 then
+      return branch
+    end
+  end
+  return nil
+end
 
+local diffview_imply_local = true
+
+local function diffview_prompt_title()
+  local mode = diffview_imply_local and "working tree" or "commits only"
+  return "Diffview range/rev (" .. mode .. ", <C-l> toggles)"
+end
+
+local function diffview_open_with_qf(range)
   -- Populate quickfix with cwd-relative paths
   qf_from_git_range(range)
 
@@ -106,11 +58,35 @@ local function diffview_open_prompt_with_qf()
     vim.cmd("copen")
   end
 
-  -- Open Diffview with working-tree on the right
-  vim.cmd("DiffviewOpen " .. range .. " --imply-local")
+  -- --imply-local puts the working tree on the right (LSP-friendly), which also
+  -- pulls in uncommitted and untracked changes
+  vim.cmd("DiffviewOpen " .. range .. (diffview_imply_local and " --imply-local" or ""))
 end
 
-vim.keymap.set("n", "<leader>mr", diffview_open_prompt_with_qf, {
-  desc = "DiffviewOpen (prompt) + Trouble qflist (cwd-relative) --imply-local",
-})
+local function diffview_open_prompt_with_qf()
+  local trunk = trunk_branch()
+  Snacks.input({
+    prompt = diffview_prompt_title(),
+    default = trunk and (trunk .. "...HEAD") or nil,
+    win = {
+      keys = {
+        toggle_imply_local = {
+          "<C-l>",
+          function(self)
+            diffview_imply_local = not diffview_imply_local
+            self:set_title(diffview_prompt_title())
+          end,
+          mode = { "i", "n" },
+        },
+      },
+    },
+  }, function(range)
+    if range then
+      diffview_open_with_qf(range)
+    end
+  end)
+end
 
+vim.keymap.set("n", "<leader>gdo", diffview_open_prompt_with_qf, {
+  desc = "DiffviewOpen (prompt) + Trouble qflist (cwd-relative)",
+})

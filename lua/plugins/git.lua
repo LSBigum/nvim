@@ -165,12 +165,14 @@ return {
         -- normal code.
         vim.api.nvim_set_hl(0, "DiffviewDiffDeleteDim", { link = "DiffDelete" })
 
-        -- diff1_inline marks changed characters with DiffText's background but
-        -- drops its foreground so syntax colours show through. gruvbox-material's
-        -- DiffText is dark text on bright cyan (#80aa9e), so syntax-coloured
-        -- text on that background is unreadable. Use a dark teal that still
-        -- stands out from the DiffChange line background.
-        vim.api.nvim_set_hl(0, "DiffviewDiffTextInline", { bg = "#22555e" })
+        -- gruvbox-material paints changed lines saturated teal (#0e363e) and
+        -- changed characters as dark text on bright cyan (#80aa9e), which
+        -- pulls the eye away from the code. Use a muted blue-grey line and a
+        -- slightly lighter tone for changed characters, with no foreground so
+        -- syntax colours show through. The inline layout gets the same tone.
+        vim.api.nvim_set_hl(0, "DiffviewDiffChange", { bg = "#2d3639" })
+        vim.api.nvim_set_hl(0, "DiffviewDiffText", { bg = "#374548" })
+        vim.api.nvim_set_hl(0, "DiffviewDiffTextInline", { bg = "#374548" })
       end
       override_highlights()
       vim.api.nvim_create_autocmd("ColorScheme", { callback = override_highlights })
