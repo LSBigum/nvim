@@ -32,7 +32,7 @@ local function find_nearest_package_name(start_path)
   local pkg_xml = vim.fs.find("package.xml", {
     path = start_path,
     upward = true,
-    stop = vim.loop.os_homedir(),
+    stop = vim.uv.os_homedir(),
   })[1]
 
   if not pkg_xml then

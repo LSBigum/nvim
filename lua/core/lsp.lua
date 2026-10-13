@@ -204,7 +204,7 @@ local function lsp_info()
         print("  Filetypes: " .. table.concat(client.config.filetypes or {}, ", "))
 
         -- Server status
-        if client.is_stopped() then
+        if client:is_stopped() then
             print("  Status: 󰅚 Stopped")
         else
             print("  Status: 󰄬 Running")
