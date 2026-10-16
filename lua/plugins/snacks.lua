@@ -743,6 +743,26 @@ return {
         end
         vim.print = _G.dd -- Override print to use snacks for `:=` command
 
+        -- Workaround: snacks' vim.ui.select sizes the list as `vim.o.lines * 0.8 - 10`,
+        -- which is fractional in small windows and makes nvim_win_set_config fail.
+        local pick = Snacks.picker.pick
+        Snacks.picker.pick = function(source, opts)
+          local o = type(source) == "table" and source or opts
+          local config = o and o.source == "select" and o.layout and o.layout.config
+          if type(config) == "function" then
+            o.layout.config = function(layout)
+              local ret = config(layout)
+              for _, box in ipairs((ret or layout).layout or {}) do
+                if type(box.height) == "number" and box.height > 1 then
+                  box.height = math.floor(box.height)
+                end
+              end
+              return ret
+            end
+          end
+          return pick(source, opts)
+        end
+
         -- Create some toggle mappings
         Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>us")
         Snacks.toggle.option("wrap", { name = "Wrap" }):map("<leader>uw")
