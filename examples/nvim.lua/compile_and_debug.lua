@@ -199,6 +199,61 @@ local function project_binary()
   return vim.fs.normalize(get_build_root() .. "/" .. name .. "/" .. project.binary)
 end
 
+---- Pick from shell command output ----
+-- Runs `cmd` through fish in `cwd`, turns each non-empty output line into an
+-- entry and lets the user pick one with vim.ui.select.
+local function pick_from_command(cmd, cwd, prompt, on_choice, format_item)
+  if vim.fn.isdirectory(cwd) == 0 then
+    vim.notify(cwd .. " does not exist, run _Cmake first", vim.log.levels.ERROR)
+    return on_choice(nil)
+  end
+
+  local result = vim.system({ "fish", "-c", cmd }, { text = true, cwd = cwd }):wait()
+
+  if result.code ~= 0 then
+    vim.notify("`" .. cmd .. "` failed:\n" .. (result.stderr or ""), vim.log.levels.ERROR)
+    return on_choice(nil)
+  end
+
+  local entries = vim.split(vim.trim(result.stdout or ""), "\n", { trimempty = true })
+
+  if #entries == 0 then
+    vim.notify("`" .. cmd .. "` returned no entries in " .. cwd, vim.log.levels.WARN)
+    return on_choice(nil)
+  end
+
+  table.sort(entries)
+  vim.ui.select(entries, { prompt = prompt, format_item = format_item }, on_choice)
+end
+
+-- Executables without a file extension under examples/, relative to the build dir.
+-- Debian/Ubuntu ship fd as `fdfind`.
+local fd = vim.fn.executable("fd") == 1 and "fd" or "fdfind"
+local binary_picker_cmd = fd .. " -tx '^[^.]+$' examples/"
+
+local function pick_binary(on_choice)
+  pick_from_command(binary_picker_cmd, get_build_cwd(), "Select executable", on_choice, vim.fs.basename)
+end
+
+-- Pick an executable and make it the default for `_Run` and the debug configs
+vim.api.nvim_create_user_command("ProjectPickBinary", function()
+  pick_binary(function(choice)
+    if choice then
+      project.binary = choice
+      vim.notify("Binary set to " .. choice)
+    end
+  end)
+end, { desc = "Pick the executable used by _Run and " .. debug_name() })
+
+-- nvim-dap waits on a returned coroutine, so the picker can run asynchronously
+local function pick_project_binary()
+  return coroutine.create(function(dap_run_co)
+    pick_binary(function(choice)
+      coroutine.resume(dap_run_co, choice and vim.fs.normalize(get_build_cwd() .. "/" .. choice) or require("dap").ABORT)
+    end)
+  end)
+end
+
 
 local dap = require("dap")
 dap.configurations.cpp = dap.configurations.cpp or {}
@@ -223,4 +278,14 @@ table.insert(dap.configurations.cpp, 1,
   args = {},
   stopOnEntry = false,
   preLaunchTask = "_Build",
+})
+table.insert(dap.configurations.cpp, 1,
+{
+  name = "Debug picked executable",
+  type = "lldb",
+  request = "launch",
+  program = pick_project_binary,
+  cwd = get_worktree_root,
+  args = {},
+  stopOnEntry = false,
 })
