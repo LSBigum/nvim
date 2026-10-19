@@ -1,28 +1,58 @@
 local overseer = require("overseer")
+local dap = require("dap")
 
----- Base settings ----
-local compiler = "cmake"
-local wrapper_root = vim.fs.normalize(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h"))
+---- Project settings ----
+-- Everything project specific lives in this table. Paths are relative to the
+-- directory of this file unless stated otherwise.
 local project = {
-  source_dir = "mimic",
+  name = "Clay",
+
+  -- Source dir, relative to the git worktree root of the current buffer
+  source_dir = "./",
   build_dir = "build",
-  binary = "ui/mimic",
+  -- Build each git worktree into build_dir/<worktree name> so worktrees don't
+  -- clobber each other's build trees
+  per_worktree_build = true,
+
   build_type = "Debug",
-  name = "Mimic",
-  urgent_component = "project.mark_urgent_on_complete",
-  build_args = { "--", "-j20" },
+  generator = nil, -- e.g. "Ninja"; nil lets cmake pick
   cmake_args = {
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
   },
+  jobs = vim.uv.available_parallelism(),
+  build_target = nil, -- e.g. "my_app"; nil builds all
+  build_args = {}, -- extra args passed after `--` to the native build tool
+
+  -- Executable relative to the build dir. Leave empty to be prompted on debug
+  -- and use :ProjectPickBinary to set it for the session.
+  binary = "",
+  -- `fd` search used by the picker, run in the build dir
+  binary_search = {
+    dir = "examples/",
+    pattern = "^[^.]+$", -- files without an extension
+  },
+
+  -- Arguments and environment shared by `_Run` and the debug configs
+  args = {},
+  env = {},
+
+  -- Working directory: "build", "source", "worktree" or an absolute path
+  run_cwd = "build",
+  debug_cwd = "worktree",
+
+  debug = {
+    adapter = "lldb",
+    filetypes = { "cpp", "c" },
+    stop_on_entry = false,
+  },
+
+  -- Flag the terminal window urgent (via xdotool) when a task finishes
+  mark_urgent = true,
 }
 
-local function debug_name()
-  return "Debug " .. project.name
-end
-
-local function compile_and_debug_name()
-  return "Compile and debug " .. project.name
-end
+---- Paths ----
+local wrapper_root = vim.fs.normalize(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h"))
+local urgent_component = "project.mark_urgent_on_complete"
 
 local function current_path()
   local file = vim.api.nvim_buf_get_name(0)
@@ -51,28 +81,41 @@ local function get_worktree_root()
   return get_git_root() or get_git_root(wrapper_root .. "/" .. project.source_dir) or wrapper_root
 end
 
-local function git_toplevel_name()
-  return vim.fs.basename(get_worktree_root())
-end
-
 local function get_source_root()
   return vim.fs.normalize(get_worktree_root() .. "/" .. project.source_dir)
 end
 
+-- Directory cmake is invoked from
 local function get_build_root()
   return vim.fs.normalize(wrapper_root .. "/" .. project.build_dir)
 end
 
-local function get_build_cwd()
-  local git_name = git_toplevel_name()
-
-  if not git_name then
-    return get_build_root()
-  end
-
-  return vim.fs.normalize(get_build_root() .. "/" .. git_name)
+-- Directory holding the actual build tree, relative to get_build_root()
+local function build_tree_name()
+  return project.per_worktree_build and vim.fs.basename(get_worktree_root()) or "."
 end
 
+local function get_build_cwd()
+  return vim.fs.normalize(get_build_root() .. "/" .. build_tree_name())
+end
+
+local function resolve_cwd(kind)
+  if kind == "build" then
+    return get_build_cwd()
+  elseif kind == "source" then
+    return get_source_root()
+  elseif kind == "worktree" then
+    return get_worktree_root()
+  end
+
+  return vim.fs.normalize(kind)
+end
+
+local function project_binary()
+  return vim.fs.normalize(get_build_cwd() .. "/" .. project.binary)
+end
+
+---- Urgent window component ----
 local function get_current_window_id()
   if vim.env.WINDOWID and vim.env.WINDOWID ~= "" then
     return vim.trim(vim.env.WINDOWID)
@@ -87,7 +130,9 @@ local function get_current_window_id()
   return vim.trim(result.stdout)
 end
 
-package.preload["overseer.component." .. project.urgent_component] = function()
+local use_urgent = project.mark_urgent and vim.fn.executable("xdotool") == 1
+
+package.preload["overseer.component." .. urgent_component] = function()
   return {
     desc = "Mark the terminal window urgent when task completes",
     editable = false,
@@ -114,125 +159,130 @@ package.preload["overseer.component." .. project.urgent_component] = function()
   }
 end
 
----- Compiler flags ----
-local function compiler_flags()
-  return vim.list_extend({
-    "--build",
-    git_toplevel_name(),
-  }, project.build_args)
+local function task_components(cwd)
+  local components = {
+    "default",
+    { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = cwd },
+  }
+
+  if use_urgent then
+    table.insert(components, urgent_component)
+  end
+
+  return components
 end
 
-overseer.register_template({
-  name = "_Build",
-  tags = { overseer.TAG.BUILD },
-  builder = function()
-    local build_cwd = get_build_root()
-
-    local args = compiler_flags()
-
-    return {
-      cmd = compiler,
-      args = args,
-      cwd = build_cwd,
-      components = {
-        "default",
-        project.urgent_component,
-        { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = build_cwd },
-      },
-    }
-  end
-})
-
+---- Tasks ----
 local function cmake_flags()
-  return vim.list_extend({
+  local args = {
     "-B",
-    git_toplevel_name(),
+    build_tree_name(),
     "-S",
     get_source_root(),
     "-DCMAKE_BUILD_TYPE=" .. project.build_type,
-  }, project.cmake_args)
+  }
+
+  if project.generator then
+    vim.list_extend(args, { "-G", project.generator })
+  end
+
+  return vim.list_extend(args, project.cmake_args)
+end
+
+local function build_flags()
+  local args = { "--build", build_tree_name(), "--parallel", tostring(project.jobs) }
+
+  if project.build_target then
+    vim.list_extend(args, { "--target", project.build_target })
+  end
+
+  if #project.build_args > 0 then
+    table.insert(args, "--")
+    vim.list_extend(args, project.build_args)
+  end
+
+  return args
 end
 
 overseer.register_template({
   name = "_Cmake",
   tags = { overseer.TAG.BUILD },
   builder = function()
-    local build_cwd = get_build_root()
-    vim.fn.mkdir(build_cwd, "p")
-
-    local args = cmake_flags()
+    local build_root = get_build_root()
+    vim.fn.mkdir(build_root, "p")
 
     return {
-      cmd = compiler,
-      args = args,
-      cwd = build_cwd,
-      components = {
-        "default",
-        project.urgent_component,
-        { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = build_cwd },
-      },
+      cmd = "cmake",
+      args = cmake_flags(),
+      cwd = build_root,
+      components = task_components(build_root),
     }
-  end
+  end,
+})
+
+overseer.register_template({
+  name = "_Build",
+  tags = { overseer.TAG.BUILD },
+  builder = function()
+    local build_root = get_build_root()
+
+    return {
+      cmd = "cmake",
+      args = build_flags(),
+      cwd = build_root,
+      components = task_components(build_root),
+    }
+  end,
 })
 
 overseer.register_template({
   name = "_Run",
-  tags = { overseer.TAG.BUILD },
+  tags = { overseer.TAG.RUN },
   builder = function()
-    local build_cwd = get_build_cwd()
+    if project.binary == "" then
+      error("No binary set for " .. project.name .. ", run :ProjectPickBinary first")
+    end
+
+    local cwd = resolve_cwd(project.run_cwd)
 
     return {
-      cmd = "./" .. project.binary,
-      cwd = build_cwd,
-      components = {
-        "default",
-        project.urgent_component,
-        { "on_output_quickfix", open_on_exit = "failure", open = false, set_diagnostics = true, relative_file_root = build_cwd },
-      },
+      cmd = project_binary(),
+      args = project.args,
+      env = project.env,
+      cwd = cwd,
+      components = task_components(cwd),
     }
-  end
+  end,
 })
 
-local function project_binary()
-  local name = git_toplevel_name()
+---- Binary picker ----
+local fd = vim.fn.executable("fd") == 1 and "fd" or "fdfind" -- Debian/Ubuntu ship fd as `fdfind`
 
-  return vim.fs.normalize(get_build_root() .. "/" .. name .. "/" .. project.binary)
-end
+local function pick_binary(on_choice)
+  local cwd = get_build_cwd()
 
----- Pick from shell command output ----
--- Runs `cmd` through fish in `cwd`, turns each non-empty output line into an
--- entry and lets the user pick one with vim.ui.select.
-local function pick_from_command(cmd, cwd, prompt, on_choice, format_item)
   if vim.fn.isdirectory(cwd) == 0 then
     vim.notify(cwd .. " does not exist, run _Cmake first", vim.log.levels.ERROR)
     return on_choice(nil)
   end
 
-  local result = vim.system({ "fish", "-c", cmd }, { text = true, cwd = cwd }):wait()
+  local search = project.binary_search
+  local result = vim.system({ fd, "-tx", search.pattern, search.dir }, { text = true, cwd = cwd }):wait()
 
   if result.code ~= 0 then
-    vim.notify("`" .. cmd .. "` failed:\n" .. (result.stderr or ""), vim.log.levels.ERROR)
+    vim.notify(fd .. " failed:\n" .. (result.stderr or ""), vim.log.levels.ERROR)
     return on_choice(nil)
   end
 
   local entries = vim.split(vim.trim(result.stdout or ""), "\n", { trimempty = true })
 
   if #entries == 0 then
-    vim.notify("`" .. cmd .. "` returned no entries in " .. cwd, vim.log.levels.WARN)
+    vim.notify("No executables found under " .. search.dir .. " in " .. cwd, vim.log.levels.WARN)
     return on_choice(nil)
   end
 
   table.sort(entries)
-  vim.ui.select(entries, { prompt = prompt, format_item = format_item }, on_choice)
-end
-
--- Executables without a file extension under examples/, relative to the build dir.
--- Debian/Ubuntu ship fd as `fdfind`.
-local fd = vim.fn.executable("fd") == 1 and "fd" or "fdfind"
-local binary_picker_cmd = fd .. " -tx '^[^.]+$' examples/"
-
-local function pick_binary(on_choice)
-  pick_from_command(binary_picker_cmd, get_build_cwd(), "Select executable", on_choice, vim.fs.basename)
+  vim.ui.select(entries, { prompt = "Select executable", format_item = vim.fs.basename }, on_choice)
 end
 
 -- Pick an executable and make it the default for `_Run` and the debug configs
@@ -243,49 +293,62 @@ vim.api.nvim_create_user_command("ProjectPickBinary", function()
       vim.notify("Binary set to " .. choice)
     end
   end)
-end, { desc = "Pick the executable used by _Run and " .. debug_name() })
+end, { desc = "Pick the executable used by _Run and the " .. project.name .. " debug configs" })
 
 -- nvim-dap waits on a returned coroutine, so the picker can run asynchronously
 local function pick_project_binary()
   return coroutine.create(function(dap_run_co)
     pick_binary(function(choice)
-      coroutine.resume(dap_run_co, choice and vim.fs.normalize(get_build_cwd() .. "/" .. choice) or require("dap").ABORT)
+      coroutine.resume(dap_run_co, choice and vim.fs.normalize(get_build_cwd() .. "/" .. choice) or dap.ABORT)
     end)
   end)
 end
 
+-- Use the configured binary, or prompt for one when none is set
+local function configured_or_picked_binary()
+  if project.binary == "" then
+    return pick_project_binary()
+  end
 
-local dap = require("dap")
-dap.configurations.cpp = dap.configurations.cpp or {}
+  return project_binary()
+end
 
-table.insert(dap.configurations.cpp, 1,
-{
-  name = debug_name(),
-  type = "lldb",
-  request = "launch",
-  program = project_binary,
-  cwd = get_worktree_root,
-  args = {},
-  stopOnEntry = false,
-})
-table.insert(dap.configurations.cpp, 1,
-{
-  name = compile_and_debug_name(),
-  type = "lldb",
-  request = "launch",
-  program = project_binary,
-  cwd = get_worktree_root,
-  args = {},
-  stopOnEntry = false,
-  preLaunchTask = "_Build",
-})
-table.insert(dap.configurations.cpp, 1,
-{
-  name = "Debug picked executable",
-  type = "lldb",
-  request = "launch",
-  program = pick_project_binary,
-  cwd = get_worktree_root,
-  args = {},
-  stopOnEntry = false,
-})
+---- Debug configs ----
+local function debug_config(name, program, extra)
+  return vim.tbl_extend("force", {
+    name = name,
+    type = project.debug.adapter,
+    request = "launch",
+    program = program,
+    cwd = function()
+      return resolve_cwd(project.debug_cwd)
+    end,
+    args = function()
+      return project.args
+    end,
+    env = function()
+      return project.env
+    end,
+    stopOnEntry = project.debug.stop_on_entry,
+  }, extra or {})
+end
+
+local configs = {
+  debug_config("Debug picked executable", pick_project_binary),
+  debug_config("Compile and debug " .. project.name, configured_or_picked_binary, { preLaunchTask = "_Build" }),
+  debug_config("Debug " .. project.name, configured_or_picked_binary),
+}
+
+local config_names = {}
+for _, config in ipairs(configs) do
+  config_names[config.name] = true
+end
+
+for _, filetype in ipairs(project.debug.filetypes) do
+  -- Drop entries from a previous load so re-sourcing this file doesn't duplicate them
+  local existing = vim.tbl_filter(function(config)
+    return not config_names[config.name]
+  end, dap.configurations[filetype] or {})
+
+  dap.configurations[filetype] = vim.list_extend(vim.deepcopy(configs), existing)
+end
