@@ -129,6 +129,13 @@ return {
         desc = 'Debug: Open dap-ui',
       },
       {
+        '<leader>da',
+        function()
+          vim.cmd.DapDisasm()
+        end,
+        desc = 'Debug: Open disassembly view',
+      },
+      {
         "<leader>dw",
         function()
           require("dapui").eval(nil, { enter = false })
@@ -244,15 +251,6 @@ return {
             elements = {
               {
                 id = "stacks",
-              },
-            },
-            position = "left",
-            size = 3,
-          },
-          {
-            elements = {
-              {
-                id = "disassembly"
               },
             },
             position = "right",
