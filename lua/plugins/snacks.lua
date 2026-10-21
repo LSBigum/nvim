@@ -87,6 +87,70 @@ local function file_to_reveal()
   return buf and next(files, buf) == nil and file or nil
 end
 
+local function has_lsp_client(buf, method)
+  return #vim.lsp.get_clients({ bufnr = buf, method = method }) > 0
+end
+
+local function most_recent_file_in_cwd()
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  for _, file in ipairs(vim.v.oldfiles) do
+    file = vim.fs.normalize(file)
+    if vim.startswith(file, cwd .. "/") and vim.fn.filereadable(file) == 1 then
+      return file
+    end
+  end
+end
+
+-- Snacks LSP pickers only ask the clients attached to the current buffer, and servers only start
+-- once a file of their filetype is open. From the dashboard or the explorer there is no such buffer,
+-- so move to a window that has one, or open the most recent file under cwd and wait for its server.
+local function with_lsp_buffer(method, open_picker)
+  if has_lsp_client(0, method) or is_file_buffer(0) then
+    return open_picker()
+  end
+
+  local target_win
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if has_lsp_client(buf, method) then
+      vim.api.nvim_set_current_win(win)
+      return open_picker()
+    end
+    local is_normal_window = vim.api.nvim_win_get_config(win).relative == ""
+    if not target_win and is_normal_window and not vim.bo[buf].filetype:match("^snacks_picker") then
+      target_win = win
+    end
+  end
+
+  local file = most_recent_file_in_cwd()
+  if not file or not target_win then
+    vim.notify("No recent file under the working directory to start an LSP server from", vim.log.levels.WARN)
+    return
+  end
+
+  vim.api.nvim_set_current_win(target_win)
+  vim.cmd.edit(vim.fn.fnameescape(file))
+  local buf = vim.api.nvim_get_current_buf()
+  if has_lsp_client(buf, method) then
+    return open_picker()
+  end
+
+  local autocmd = vim.api.nvim_create_autocmd("LspAttach", {
+    buffer = buf,
+    callback = function()
+      if has_lsp_client(buf, method) then
+        vim.schedule(open_picker)
+        return true
+      end
+    end,
+  })
+  vim.defer_fn(function()
+    if pcall(vim.api.nvim_del_autocmd, autocmd) then
+      vim.notify("No LSP server supporting " .. method .. " attached to " .. file, vim.log.levels.WARN)
+    end
+  end, 10000)
+end
+
 local function make_explorer_on_show(widths, after_show)
   if not widths and not after_show then
     return nil
@@ -348,42 +412,46 @@ return {
 
         root = vim.fs.normalize(root)
 
-        Snacks.picker.lsp_workspace_symbols({
-          cwd = root,
-          tree = false,
-          live = true,
+        with_lsp_buffer("workspace/symbol", function()
+          Snacks.picker.lsp_workspace_symbols({
+            cwd = root,
+            tree = false,
+            live = true,
 
-          filter = {
-            default = { "Function", "Method", "Constructor" },
-          },
+            filter = {
+              default = { "Function", "Method", "Constructor" },
+            },
 
-          transform = function(item)
-            if not item.file then
+            transform = function(item)
+              if not item.file then
+                return item
+              end
+
+              local file = vim.fs.normalize(item.file)
+
+              -- Only keep symbols physically inside this codebase.
+              if file ~= root and not vim.startswith(file, root .. "/") then
+                return false
+              end
+
               return item
-            end
-
-            local file = vim.fs.normalize(item.file)
-
-            -- Only keep symbols physically inside this codebase.
-            if file ~= root and not vim.startswith(file, root .. "/") then
-              return false
-            end
-
-            return item
-          end,
-        })
+            end,
+          })
+        end)
       end,
       desc = "Search [a]ll workspace functions",
     },
     {
       "<leader>ffl",
       function()
-        Snacks.picker.lsp_symbols({
-          filter = {
-            default = { "Function", "Method", "Constructor" },
-          },
-          tree = false,
-        })
+        with_lsp_buffer("textDocument/documentSymbol", function()
+          Snacks.picker.lsp_symbols({
+            filter = {
+              default = { "Function", "Method", "Constructor" },
+            },
+            tree = false,
+          })
+        end)
       end,
       desc = "Search [l]ocal functions in buffer"
     },
