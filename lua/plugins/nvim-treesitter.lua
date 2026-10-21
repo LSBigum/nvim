@@ -1,6 +1,7 @@
 local ensure_installed = {
     "bash",
     "c",
+    "cmake",
     "cpp",
     "html",
     "json",
