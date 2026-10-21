@@ -1,5 +1,14 @@
 return {
-    { "L3MON4D3/LuaSnip", keys = {} },
+    {
+        "L3MON4D3/LuaSnip",
+        keys = {},
+        opts = {
+            -- Leave the snippet when the cursor moves outside it, so <Tab>
+            -- elsewhere doesn't jump back to its remaining placeholders.
+            region_check_events = "CursorMoved,CursorMovedI,InsertEnter",
+            delete_check_events = "TextChanged,InsertLeave",
+        },
+    },
     {
         "saghen/blink.cmp",
         dependencies = {
