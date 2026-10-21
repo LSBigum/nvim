@@ -191,6 +191,16 @@ local function build_clangd_cmd(root)
     vim.list_extend(cmd, base_opts)
     log("using docker: " .. table.concat(cmd, " "))
     return cmd
+  end
+
+  local incus_profile = utils_docker.find_incus_dependency_profile(root)
+  if incus_profile and file_exists(incus_profile.launcher) then
+    -- The launcher passes the Mimic worktree's own --compile-commands-dir first;
+    -- clangd keeps the last one given, so this one wins.
+    local cmd = { incus_profile.launcher, "--compile-commands-dir=" .. incus_profile.build_dir }
+    vim.list_extend(cmd, base_opts)
+    log("using incus: " .. table.concat(cmd, " "))
+    return cmd
   else
     -- run on host with the host dir
     local cmd = vim.deepcopy(base_opts)

@@ -220,6 +220,62 @@ function M.choose_container(path, on_done)
   end)
 end
 
+-- Internal-dependency repos mounted into a running Incus mimic-* container with
+-- `just incus mount <dir>`. Incus mounts every directory at its host path, so
+-- unlike the Docker profiles this needs no path_map. Returns the Mimic worktree
+-- whose incus/clangd.sh starts clangd in that container, and the dependency's
+-- build dir, named build-incus by the convention in that worktree's
+-- incus/README.md.
+function M.find_incus_dependency_profile(path)
+  if vim.fn.executable("incus") ~= 1 then
+    return nil
+  end
+  local root = git_root(path)
+  if not root then
+    return nil
+  end
+
+  local result = vim.system({ "incus", "list", "mimic-", "--format", "json" }, { text = true }):wait()
+  if result.code ~= 0 then
+    return nil
+  end
+  local ok, instances = pcall(vim.json.decode, result.stdout)
+  if not ok or not instances then
+    return nil
+  end
+
+  local candidates = {}
+  for _, instance in ipairs(instances) do
+    local devices = instance.expanded_devices or {}
+    -- "repo" is the device mimic-incus.sh adds for the worktree itself.
+    if instance.status == "Running" and devices.repo then
+      for _, device in pairs(devices) do
+        if device.type == "disk" and device.source and vim.fs.normalize(device.source) == root then
+          table.insert(candidates, { container = instance.name, worktree = devices.repo.source })
+          break
+        end
+      end
+    end
+  end
+  if #candidates == 0 then
+    return nil
+  end
+
+  local candidate = candidates[1]
+  local level = (#candidates > 1) and vim.log.levels.WARN or vim.log.levels.INFO
+  vim.notify(
+    "[clangd] " .. vim.fs.basename(root) .. " -> Incus " .. candidate.container
+      .. ((#candidates > 1) and (" (first of " .. #candidates .. ")") or ""),
+    level
+  )
+
+  return {
+    container = candidate.container,
+    launcher = candidate.worktree .. "/incus/clangd.sh",
+    build_dir = root .. "/build-incus",
+  }
+end
+
 function M.detect_profile(cwd)
   for _, prof in ipairs(workspace_profiles) do
     if cwd:match(prof.match) then
