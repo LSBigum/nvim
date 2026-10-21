@@ -8,7 +8,6 @@ local function log(msg)
     vim.notify("[clangd.lua] " .. msg)
   end
 end
-local cwd = vim.fn.getcwd()
 
 -- utils ---------------------------------------------------------------------
 local function path_join(a, b)
@@ -57,15 +56,15 @@ local function prefer_compile_commands_dir(dir)
 end
 
 -- Known catkin workspace directory names, checked in order. Each is matched
--- against cwd; the nearest package.xml's parent dir name becomes the package
--- name used to locate that workspace's per-package build dir.
+-- against the LSP root; the nearest package.xml's parent dir name becomes the
+-- package name used to locate that workspace's per-package build dir.
 local CATKIN_WORKSPACES = { "catkin_ws_20", "catkin_ws_non_core", "catkin_ws_core", "catkin_ws_test" }
 
-local function find_catkin_compile_dir()
+local function find_catkin_compile_dir(root)
   for _, name in ipairs(CATKIN_WORKSPACES) do
-    local ws = cwd:match("(.+/" .. name .. ")")
+    local ws = root:match("(.+/" .. name .. ")")
     if ws then
-      local pkg_name = find_nearest_package_name(cwd)
+      local pkg_name = find_nearest_package_name(root)
       if pkg_name then
         local build_dir = path_join(path_join(ws, "build"), string.lower(pkg_name))
         local dir = prefer_compile_commands_dir(build_dir)
@@ -81,7 +80,10 @@ local function find_catkin_compile_dir()
   return nil
 end
 
-local function find_host_compile_dir(mimic_profile)
+-- `root` is the LSP root directory of the buffer being attached (see
+-- root_markers below), not the editor's cwd: one nvim session can hold buffers
+-- from Mimic and from a dependency checkout, and each needs its own answer.
+local function find_host_compile_dir(mimic_profile, root)
   if mimic_profile then
     local dir = prefer_compile_commands_dir(mimic_profile.build_dir)
     if dir then
@@ -90,13 +92,13 @@ local function find_host_compile_dir(mimic_profile)
     end
   end
 
-  local catkin_dir = find_catkin_compile_dir()
+  local catkin_dir = find_catkin_compile_dir(root)
   if catkin_dir then
     return catkin_dir
   end
 
   do
-    local ws, proj = cwd:match("(.+/external_projects)/([^/]+)")
+    local ws, proj = root:match("(.+/external_projects)/([^/]+)")
     if ws and proj then
       local dir = prefer_compile_commands_dir(path_join(path_join(ws, "build"), proj))
       if dir then
@@ -107,18 +109,29 @@ local function find_host_compile_dir(mimic_profile)
     end
   end
 
+  -- Internal-dependency repos (RobWork, LCore, ...) built inside a mounted
+  -- mimic-dev container use this fixed name by convention — see
+  -- docker-compose.override.yml.example in the Mimic repo. Checked before the
+  -- generic "build/<project>" fallback below since that one would never match
+  -- it. host_cc_dir still has to be the *host* path here even on the docker
+  -- branch below: map_host_to_container() translates it into the container's
+  -- --compile-commands-dir from it.
+  do
+    local dir = prefer_compile_commands_dir(path_join(root, "build-docker"))
+    if dir then
+      log("host compile_commands_dir=" .. dir)
+      return dir
+    end
+  end
+
   -- Standard CMake build at project root
   do
     -- Search parent directories for a build directory
-    local build_dir = vim.fn.finddir('build', vim.fn.expand("%:p") .. ";")
-    local project_marker = { ".git" }
-    local project_root = vim.fs.root(0, project_marker)
-    if (project_root and dir_exists(project_root)) then
-      local project_name = vim.fn.fnamemodify(vim.trim(project_root), ":t")
-      local project_build_dir = prefer_compile_commands_dir(path_join(build_dir, project_name))
-      if (project_build_dir and dir_exists(project_build_dir)) then
-        build_dir = project_build_dir
-      end
+    local build_dir = vim.fn.finddir('build', root .. ";")
+    local project_name = vim.fn.fnamemodify(vim.trim(root), ":t")
+    local project_build_dir = prefer_compile_commands_dir(path_join(build_dir, project_name))
+    if (project_build_dir and dir_exists(project_build_dir)) then
+      build_dir = project_build_dir
     end
     if build_dir and dir_exists(build_dir) then
       log("host compile_commands_dir=" .. build_dir)
@@ -126,14 +139,14 @@ local function find_host_compile_dir(mimic_profile)
     end
   end
 
-  -- Fallback to cwd
-  log("host compile_commands_dir fallback to cwd=" .. cwd)
-  return cwd
+  -- Fallback to the root itself
+  log("host compile_commands_dir fallback to root=" .. root)
+  return root
 end
 -- command assembly -----------------------------------------------------------
-local function build_clangd_cmd()
-  local mimic_profile = utils_docker.get_mimic_profile(cwd)
-  local host_cc_dir = find_host_compile_dir(mimic_profile)
+local function build_clangd_cmd(root)
+  local mimic_profile = utils_docker.get_mimic_profile(root)
+  local host_cc_dir = find_host_compile_dir(mimic_profile, root)
   local base_opts = {
     "--background-index",
     "--clang-tidy",
@@ -147,14 +160,21 @@ local function build_clangd_cmd()
   }
 
   if mimic_profile then
+    -- The Incus launcher when this worktree has one and its Docker container is
+    -- not running. It needs no path mappings for the repo: paths are the same
+    -- inside the container as outside.
+    local incus_launcher = path_join(mimic_profile.root, "incus/clangd.sh")
     local launcher = path_join(mimic_profile.root, "docker/mimic-clangd.sh")
+    if not mimic_profile.container and file_exists(incus_launcher) then
+      launcher = incus_launcher
+    end
     local cmd = { launcher }
     vim.list_extend(cmd, base_opts)
-    log("using Mimic Docker launcher: " .. table.concat(cmd, " "))
+    log("using Mimic launcher: " .. table.concat(cmd, " "))
     return cmd
   end
 
-  local profile = utils_docker.detect_profile(cwd)
+  local profile = utils_docker.detect_profile(root)
   if profile and utils_docker.is_container_running(profile.container) then
     -- translate the verified HOST dir to the container path
     local cont_cc_dir = utils_docker.map_host_to_container(host_cc_dir, profile.path_map)
@@ -181,9 +201,40 @@ local function build_clangd_cmd()
   end
 end
 
+-- :ClangdContainer — pick which running mimic-* container serves the current
+-- buffer's repo (when several worktrees mount it), then restart clangd for it.
+vim.api.nvim_create_user_command("ClangdContainer", function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local client = vim.lsp.get_clients({ bufnr = bufnr, name = "clangd" })[1]
+  local root = client and client.config.root_dir or vim.fn.expand("%:p:h")
+  utils_docker.choose_container(root, function(choice)
+    if not choice then
+      return
+    end
+    for _, running in ipairs(vim.lsp.get_clients({ name = "clangd" })) do
+      if running.config.root_dir == root then
+        vim.lsp.stop_client(running.id)
+      end
+    end
+    vim.defer_fn(function()
+      vim.cmd("edit")
+    end, 100)
+  end)
+end, { desc = "Choose the mimic-dev container clangd runs in for this repo" })
+
 -- public LSP config ----------------------------------------------------------
 M.config = {
-  cmd = build_clangd_cmd(),
+  -- A function rather than a fixed list: nvim calls it once per client, after
+  -- resolving root_dir, so a Mimic buffer and an lcore buffer in the same
+  -- session each get a clangd aimed at their own container and compile db.
+  cmd = function(dispatchers, config)
+    local cmd = build_clangd_cmd(config.root_dir or vim.fn.getcwd())
+    return vim.lsp.rpc.start(cmd, dispatchers, {
+      cwd = config.cmd_cwd,
+      env = config.cmd_env,
+      detached = config.detached,
+    })
+  end,
   filetypes = { "c", "cpp" },
   root_markers = { "compile_commands.json", ".clang", "package.xml", ".git" },
   init_options = { clangdFileStatus = true },

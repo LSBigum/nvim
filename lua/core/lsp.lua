@@ -200,7 +200,8 @@ local function lsp_info()
         print(string.format("󰌘 Client %d: %s", i, client.name))
         print("  ID: " .. client.id)
         print("  Root dir: " .. (client.config.root_dir or "Not set"))
-        print("  Command: " .. table.concat(client.config.cmd or {}, " "))
+        local cmd = client.config.cmd
+        print("  Command: " .. (type(cmd) == "table" and table.concat(cmd, " ") or tostring(cmd)))
         print("  Filetypes: " .. table.concat(client.config.filetypes or {}, ", "))
 
         -- Server status
